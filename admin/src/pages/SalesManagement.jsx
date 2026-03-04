@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import inventoryManager from '../utils/inventoryManager';
-
+//salesManagerpage
 const SalesManagement = () => {
     const [products, setProducts] = useState([]);
     const [selectedProduct, setSelectedProduct] = useState('');
