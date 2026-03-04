@@ -1,0 +1,24 @@
+# Node modules
+node_modules/
+admin/node_modules/
+user/node_modules/
+
+# Build outputs
+dist/
+admin/dist/
+user/dist/
+
+# IDE files
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Environment files
+.env
+.env.local
+
+# Vite
+*.local
