@@ -10,6 +10,7 @@ const Dashboard = () => {
     const [recentOrders, setRecentOrders] = useState([]);
     const [heroImage, setHeroImage] = useState('');
     const [isSavingHero, setIsSavingHero] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
         fetchDashboardData();
@@ -84,20 +85,49 @@ const Dashboard = () => {
     };
 
     const fetchDashboardData = async () => {
-        // Mocking stats for now, in real case use supabase counts/sums
-        setStats({
-            revenue: 124500,
-            orders: 142,
-            products: 24
-        });
+        setIsLoading(true);
+        try {
+            // Fetch total revenue from completed orders
+            const { data: ordersData, error: ordersError } = await supabase
+                .from('orders')
+                .select('total_amount, status');
 
-        const { data } = await supabase
-            .from('orders')
-            .select('*, profiles(full_name)')
-            .order('created_at', { ascending: false })
-            .limit(5);
+            if (ordersError) throw ordersError;
 
-        if (data) setRecentOrders(data);
+            const totalRevenue = ordersData
+                .filter(o => o.status === 'completed' || o.status === 'delivered')
+                .reduce((sum, o) => sum + (parseFloat(o.total_amount) || 0), 0);
+
+            // Fetch active orders count
+            const activeOrders = ordersData.filter(o => o.status !== 'cancelled' && o.status !== 'delivered').length;
+
+            // Fetch inventory count
+            const { count: productCount, error: productError } = await supabase
+                .from('products')
+                .select('*', { count: 'exact', head: true });
+
+            if (productError) throw productError;
+
+            setStats({
+                revenue: totalRevenue,
+                orders: activeOrders,
+                products: productCount || 0
+            });
+
+            // Fetch recent orders with profiles
+            const { data: recent, error: recentError } = await supabase
+                .from('orders')
+                .select('*, profiles(full_name)')
+                .order('created_at', { ascending: false })
+                .limit(5);
+
+            if (recentError) throw recentError;
+            setRecentOrders(recent || []);
+        } catch (error) {
+            console.error('Error fetching dashboard data:', error);
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     return (

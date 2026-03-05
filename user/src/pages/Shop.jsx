@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
+import { useSearchParams } from 'react-router-dom';
 
 const Shop = () => {
     const [products, setProducts] = useState([]);
@@ -8,6 +9,14 @@ const Shop = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [selectedCategory, setSelectedCategory] = useState('all');
     const [sortBy, setSortBy] = useState('newest');
+    const [searchParams] = useSearchParams();
+
+    useEffect(() => {
+        const catParam = searchParams.get('category');
+        if (catParam) {
+            setSelectedCategory(catParam);
+        }
+    }, [searchParams]);
 
     useEffect(() => {
         fetchData();
@@ -113,6 +122,10 @@ const Shop = () => {
                                         <span className="text-[10px] font-semibold text-brand-dark/40 line-through">${product.original_price}</span>
                                     </div>
                                     <div className="flex gap-1">
+                                        {/* Updated New Drop Logic for Shop Grid */}
+                                        {product.is_new_in && product.new_in_until && new Date(product.new_in_until) > new Date() && (
+                                            <span className="text-[8px] font-bold tracking-widest text-brand-orange bg-brand-orange/10 px-2 py-1 rounded-full uppercase border border-brand-orange/20 mr-1">New In</span>
+                                        )}
                                         {product.stock && Object.entries(product.stock).some(([size, qty]) => qty > 0) ? (
                                             <span className="text-[8px] font-bold tracking-widest text-green-400 bg-green-400/10 px-2 py-1 rounded-full uppercase border border-green-400/20">In Stock</span>
                                         ) : (

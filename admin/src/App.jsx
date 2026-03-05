@@ -12,7 +12,8 @@ import Categories from './pages/Categories';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import AdminManagement from './pages/AdminManagement';
-import Coupons from './pages/Coupons';
+import Banners from './pages/Banners';
+import Settings from './pages/Settings';
 import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
@@ -117,6 +118,22 @@ function App() {
                             <Header />
                             <main className="p-10">
                                 <Coupons />
+                            </main>
+                        </ProtectedRoute>
+                    } />
+                    <Route path="/banners" element={
+                        <ProtectedRoute>
+                            <Header />
+                            <main className="p-10">
+                                <Banners />
+                            </main>
+                        </ProtectedRoute>
+                    } />
+                    <Route path="/settings" element={
+                        <ProtectedRoute>
+                            <Header />
+                            <main className="p-10">
+                                <Settings />
                             </main>
                         </ProtectedRoute>
                     } />

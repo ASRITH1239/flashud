@@ -10,6 +10,9 @@
 }
 
 @layer base {
+    html {
+        scroll-behavior: initial;
+    }
     body {
         @apply bg-white text-brand-dark antialiased selection:bg-brand-orange selection:text-white;
         margin: 0;

@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabaseClient';
 
 const Categories = () => {
     const [categories, setCategories] = useState([]);
-    const [newCategory, setNewCategory] = useState({ name: '', slug: '' });
+    const [newCategory, setNewCategory] = useState({ name: '', slug: '', thumbnail_url: '' });
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
@@ -29,12 +29,12 @@ const Categories = () => {
 
         const { error } = await supabase
             .from('categories')
-            .insert([{ name: newCategory.name, slug }]);
+            .insert([{ name: newCategory.name, slug, thumbnail_url: newCategory.thumbnail_url }]);
 
         if (error) {
             alert('Error creating collection: ' + error.message);
         } else {
-            setNewCategory({ name: '', slug: '' });
+            setNewCategory({ name: '', slug: '', thumbnail_url: '' });
             fetchCategories();
         }
     };
@@ -65,19 +65,35 @@ const Categories = () => {
 
             {/* Add Category Form */}
             <div className="bg-white/5 backdrop-blur-md border border-white/10 p-8 rounded-3xl shadow-xl mb-16">
-                <form onSubmit={handleAddCategory} className="flex flex-col md:flex-row gap-4">
-                    <input
-                        type="text"
-                        placeholder="NEW COLLECTION NAME (E.G. SUMMER '25)"
-                        value={newCategory.name}
-                        onChange={(e) => setNewCategory({ ...newCategory, name: e.target.value })}
-                        className="flex-1 px-5 py-4 rounded-xl bg-black/20 border border-white/10 text-white font-medium tracking-wide focus:outline-none focus:border-brand-orange focus:ring-1 focus:ring-brand-orange transition-all placeholder:text-white/30"
-                    />
+                <form onSubmit={handleAddCategory} className="flex flex-col gap-4">
+                    <div className="flex flex-col md:flex-row gap-4">
+                        <input
+                            type="text"
+                            placeholder="NEW COLLECTION NAME (E.G. SUMMER '25)"
+                            value={newCategory.name}
+                            onChange={(e) => setNewCategory({ ...newCategory, name: e.target.value })}
+                            className="flex-1 px-5 py-4 rounded-xl bg-black/20 border border-white/10 text-white font-medium tracking-wide focus:outline-none focus:border-brand-orange focus:ring-1 focus:ring-brand-orange transition-all placeholder:text-white/30"
+                            required
+                        />
+                        <input
+                            type="text"
+                            placeholder="THUMBNAIL URL (HTTP://...)"
+                            value={newCategory.thumbnail_url}
+                            onChange={(e) => setNewCategory({ ...newCategory, thumbnail_url: e.target.value })}
+                            className="flex-1 px-5 py-4 rounded-xl bg-black/20 border border-white/10 text-white font-medium tracking-wide focus:outline-none focus:border-brand-orange focus:ring-1 focus:ring-brand-orange transition-all placeholder:text-white/30"
+                            required
+                        />
+                    </div>
+                    {newCategory.thumbnail_url && (
+                        <div className="w-full h-32 rounded-xl border border-white/10 bg-black/20 overflow-hidden">
+                            <img src={newCategory.thumbnail_url} alt="Thumbnail preview" className="w-full h-full object-cover" />
+                        </div>
+                    )}
                     <button
                         type="submit"
-                        className="px-8 py-4 rounded-xl bg-brand-gradient text-white font-bold uppercase tracking-widest shadow-[0_0_20px_rgba(255,123,0,0.3)] hover:shadow-[0_0_30px_rgba(255,123,0,0.5)] hover:-translate-y-0.5 transition-all"
+                        className="w-full py-4 rounded-xl bg-brand-gradient text-white font-bold uppercase tracking-widest shadow-[0_0_20px_rgba(255,123,0,0.3)] hover:shadow-[0_0_30px_rgba(255,123,0,0.5)] hover:-translate-y-0.5 transition-all"
                     >
-                        INITIALIZE
+                        INITIALIZE COLLECTION
                     </button>
                 </form>
             </div>
@@ -92,11 +108,18 @@ const Categories = () => {
                     <div className="p-10 text-center font-medium uppercase tracking-[0.2em] text-white/50">Scanning Database...</div>
                 ) : categories.length > 0 ? categories.map((cat) => (
                     <div key={cat.id} className="bg-white/5 backdrop-blur-md border border-white/10 p-6 rounded-2xl flex justify-between items-center group hover:bg-white/10 hover:shadow-[0_4px_20px_0_rgba(255,123,0,0.1)] transition-all duration-300">
-                        <div>
-                            <div className="font-medium text-xl text-white uppercase tracking-wider mb-1 group-hover:text-brand-orange transition-colors">
-                                {cat.name}
+                        <div className="flex items-center gap-6">
+                            {cat.thumbnail_url && (
+                                <div className="w-16 h-16 rounded-xl border border-white/10 overflow-hidden flex-shrink-0">
+                                    <img src={cat.thumbnail_url} alt={cat.name} className="w-full h-full object-cover" />
+                                </div>
+                            )}
+                            <div>
+                                <div className="font-medium text-xl text-white uppercase tracking-wider mb-1 group-hover:text-brand-orange transition-colors">
+                                    {cat.name}
+                                </div>
+                                <code className="text-xs font-medium text-white/40 uppercase tracking-[0.1em]">SLUG: {cat.slug}</code>
                             </div>
-                            <code className="text-xs font-medium text-white/40 uppercase tracking-[0.1em]">SLUG: {cat.slug}</code>
                         </div>
                         <button
                             onClick={() => deleteCategory(cat.id)}

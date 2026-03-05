@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { supabase } from '../lib/supabaseClient';
 
 const Header = () => {
     const location = useLocation();
@@ -9,7 +10,8 @@ const Header = () => {
         ? 'text-brand-orange drop-shadow-[0_0_8px_rgba(255,123,0,0.5)]'
         : 'text-gray-400 hover:text-white transition-colors';
 
-    const handleLogout = () => {
+    const handleLogout = async () => {
+        await supabase.auth.signOut();
         localStorage.removeItem('isAuthenticated');
         localStorage.removeItem('adminEmail');
         navigate('/login');
@@ -28,11 +30,13 @@ const Header = () => {
             <nav className="flex items-center gap-6">
                 <Link to="/" className={`text-sm font-medium tracking-wide transition-all ${isActive('/')}`}>DASHBOARD</Link>
                 <Link to="/products" className={`text-sm font-medium tracking-wide transition-all ${isActive('/products')}`}>INVENTORY</Link>
+                <Link to="/banners" className={`text-sm font-medium tracking-wide transition-all ${isActive('/banners')}`}>BANNERS</Link>
                 <Link to="/sales-management" className={`text-sm font-medium tracking-wide transition-all ${isActive('/sales-management')}`}>SALES</Link>
                 <Link to="/orders" className={`text-sm font-medium tracking-wide transition-all ${isActive('/orders')}`}>ORDERS</Link>
                 <Link to="/customers" className={`text-sm font-medium tracking-wide transition-all ${isActive('/customers')}`}>CUSTOMERS</Link>
                 <Link to="/categories" className={`text-sm font-medium tracking-wide transition-all ${isActive('/categories')}`}>CATEGORIES</Link>
                 <Link to="/coupons" className={`text-sm font-medium tracking-wide transition-all ${isActive('/coupons')}`}>COUPONS</Link>
+                <Link to="/settings" className={`text-sm font-medium tracking-wide transition-all ${isActive('/settings')}`}>SETTINGS</Link>
                 <Link to="/admin-management" className={`text-sm font-medium tracking-wide transition-all ${isActive('/admin-management')}`}>ADMINS</Link>
 
                 <div className="w-px h-6 bg-white/20 mx-2"></div>

@@ -21,7 +21,9 @@ const UploadProducts = () => {
         },
         images: ['', '', '', ''],
         is_archived: false,
-        category_id: null
+        category_id: null,
+        is_new_in: false,
+        new_in_duration: 7
     });
 
     const [categories, setCategories] = useState([]);
@@ -49,7 +51,11 @@ const UploadProducts = () => {
         if (data) {
             setFormData({
                 ...data,
-                images: data.images || ['', '', '', '']
+                images: data.images || ['', '', '', ''],
+                is_new_in: data.is_new_in || false,
+                new_in_duration: data.new_in_until
+                    ? Math.max(0, Math.ceil((new Date(data.new_in_until) - new Date()) / (1000 * 60 * 60 * 24)))
+                    : 7
             });
         }
         setIsLoading(false);
@@ -90,11 +96,17 @@ const UploadProducts = () => {
             ...formData,
             original_price: parseFloat(formData.original_price),
             discounted_price: parseFloat(formData.discounted_price),
-            images: formData.images.filter(img => img.trim() !== '')
+            images: formData.images.filter(img => img.trim() !== ''),
+            new_in_until: formData.is_new_in
+                ? new Date(Date.now() + formData.new_in_duration * 24 * 60 * 60 * 1000).toISOString()
+                : null
         };
 
-        if (payload.images.length === 0) {
-            alert('Please add at least 1 product image URL');
+        // Remove helper field from payload
+        delete payload.new_in_duration;
+
+        if (payload.images.length < 4) {
+            alert('STRATEGIC REQUIREMENT: Please provide AT LEAST 4 product image URLs for a premium appearance.');
             setIsLoading(false);
             return;
         }
@@ -214,7 +226,7 @@ const UploadProducts = () => {
                                     ))}
                                 </select>
                             </div>
-                            <div className="flex items-center mt-6">
+                            <div className="flex flex-col gap-6">
                                 <label className="flex items-center gap-4 cursor-pointer group">
                                     <div className="relative flex items-center justify-center">
                                         <input
@@ -227,6 +239,34 @@ const UploadProducts = () => {
                                     </div>
                                     <span className="text-[10px] font-semibold text-white/60 uppercase tracking-[0.2em] group-hover:text-white transition-colors">ARCHIVE ASSET</span>
                                 </label>
+
+                                <div className="flex flex-col gap-4 p-4 rounded-2xl bg-white/5 border border-white/5">
+                                    <label className="flex items-center gap-4 cursor-pointer group">
+                                        <div className="relative flex items-center justify-center">
+                                            <input
+                                                type="checkbox"
+                                                checked={formData.is_new_in}
+                                                onChange={(e) => setFormData(prev => ({ ...prev, is_new_in: e.target.checked }))}
+                                                className="w-6 h-6 rounded-md border border-white/30 bg-black/20 appearance-none cursor-pointer checked:bg-brand-orange checked:border-brand-orange transition-all peer"
+                                            />
+                                            <span className="pointer-events-none absolute text-white opacity-0 peer-checked:opacity-100 font-bold transition-opacity">✓</span>
+                                        </div>
+                                        <span className="text-[10px] font-semibold text-white/60 uppercase tracking-[0.2em] group-hover:text-white transition-colors">MARK AS "NEW IN"</span>
+                                    </label>
+
+                                    {formData.is_new_in && (
+                                        <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+                                            <label className="block text-[8px] font-bold text-brand-orange uppercase tracking-[0.2em] mb-2 ml-1">DURATION (DAYS)</label>
+                                            <input
+                                                type="number"
+                                                value={formData.new_in_duration}
+                                                onChange={(e) => setFormData(prev => ({ ...prev, new_in_duration: parseInt(e.target.value) || 0 }))}
+                                                min="1"
+                                                className="w-24 px-4 py-2 rounded-lg bg-black/40 border border-white/10 text-white text-sm focus:outline-none focus:border-brand-orange transition-all"
+                                            />
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     </div>

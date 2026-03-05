@@ -79,29 +79,18 @@ const Login = () => {
         }
 
         try {
-            const inputEmail = formData.email.trim().toLowerCase();
-            const inputPass = formData.password.trim();
-            const targetEmail = 'flashud4@gmail.com';
-            const validPasswords = ['admin@123', 'FLASHUD@2208', 'FLASHUD@2208f'];
+            // Force strict Supabase Authentication to get a secure session for RLS
+            const { data, error } = await supabase.auth.signInWithPassword({
+                email: formData.email.trim(),
+                password: formData.password,
+            });
 
-            if (inputEmail === targetEmail && validPasswords.includes(inputPass)) {
-                localStorage.setItem('isAuthenticated', 'true');
-                localStorage.setItem('adminEmail', formData.email);
-                navigate('/');
+            if (error) {
+                setError('Invalid credentials or user not registered in Supabase.');
             } else {
-                // If not hardcoded, check Supabase (Optional fallback)
-                const { data, error } = await supabase.auth.signInWithPassword({
-                    email: formData.email,
-                    password: formData.password,
-                });
-
-                if (error) {
-                    setError('Invalid credentials');
-                } else {
-                    localStorage.setItem('isAuthenticated', 'true');
-                    localStorage.setItem('adminEmail', data.user.email);
-                    navigate('/');
-                }
+                localStorage.setItem('isAuthenticated', 'true');
+                localStorage.setItem('adminEmail', data.user.email);
+                navigate('/');
             }
         } catch (err) {
             setError('Login failed. Please try again.');

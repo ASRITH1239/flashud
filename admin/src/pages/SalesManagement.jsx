@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import inventoryManager from '../utils/inventoryManager';
+import { supabase } from '../lib/supabaseClient';
 //salesManagerpage
 const SalesManagement = () => {
     const [products, setProducts] = useState([]);
@@ -15,87 +16,74 @@ const SalesManagement = () => {
         loadSalesHistory();
     }, []);
 
-    const loadProducts = () => {
-        const allProducts = inventoryManager.getAllProducts();
-        const inventory = inventoryManager.getAllInventory();
-        
+    const loadProducts = async () => {
+        const allProducts = await inventoryManager.getAllProducts();
+        const inventory = await inventoryManager.getAllInventory();
+
         // Combine products with their inventory data
         const productsWithInventory = allProducts.map(product => ({
             ...product,
             inventory: inventory[product.id] || null
         })).filter(product => product.inventory && product.inventory.totalStock > 0);
-        
+
         setProducts(productsWithInventory);
     };
 
-    const loadSalesHistory = () => {
-        // Get sales history from localStorage (simulated)
-        const history = JSON.parse(localStorage.getItem('salesHistory') || '[]');
-        setSalesHistory(history.slice(-10)); // Show last 10 sales
+    const loadSalesHistory = async () => {
+        const { data, error } = await supabase
+            .from('sales')
+            .select('*')
+            .order('created_at', { ascending: false })
+            .limit(10);
+
+        if (data) setSalesHistory(data);
     };
 
-    const handleSale = () => {
+    const handleSale = async () => {
         if (!selectedProduct || !selectedSize || quantity <= 0) {
             alert('Please select product, size, and quantity');
             return;
         }
 
-        const productInventory = inventoryManager.getProductInventory(selectedProduct);
+        const productInventory = await inventoryManager.getProductInventory(selectedProduct);
         const sizeStock = productInventory.sizes.find(s => s.size === selectedSize);
-        
+
         if (!sizeStock || sizeStock.currentStock < quantity) {
             alert(`Insufficient stock. Only ${sizeStock?.currentStock || 0} units available for size ${selectedSize}`);
             return;
         }
 
         // Process the sale
-        const success = inventoryManager.processSale(selectedProduct, selectedSize, quantity);
-        
+        const success = await inventoryManager.processSale(selectedProduct, selectedSize, quantity);
+
         if (success) {
-            // Record the sale
-            const sale = {
-                id: Date.now().toString(),
-                productId: selectedProduct,
-                productName: products.find(p => p.id === selectedProduct)?.productName,
-                size: selectedSize,
-                quantity: quantity,
-                price: products.find(p => p.id === selectedProduct)?.discountedPrice || 0,
-                total: quantity * (products.find(p => p.id === selectedProduct)?.discountedPrice || 0),
-                timestamp: new Date().toISOString()
-            };
-
-            const history = JSON.parse(localStorage.getItem('salesHistory') || '[]');
-            history.push(sale);
-            localStorage.setItem('salesHistory', JSON.stringify(history));
-
             // Reset form and refresh data
             setSelectedProduct('');
             setSelectedSize('');
             setQuantity(1);
-            loadProducts();
-            loadSalesHistory();
-            
-            alert(`Sale processed: ${quantity} units of size ${selectedSize}`);
+            await loadProducts();
+            await loadSalesHistory();
+
+            alert(`SALE EXECUTED: ${quantity} units of size ${selectedSize} logged in Supabase.`);
         } else {
             alert('Error processing sale. Please try again.');
         }
     };
 
-    const handleReturn = (saleId) => {
+    const handleReturn = async (saleId) => {
         const sale = salesHistory.find(s => s.id === saleId);
         if (!sale) return;
 
-        const success = inventoryManager.processReturn(sale.productId, sale.size, sale.quantity);
-        
+        const success = await inventoryManager.processReturn(sale.product_id, sale.size, sale.quantity);
+
         if (success) {
-            // Remove sale from history
-            const updatedHistory = salesHistory.filter(s => s.id !== saleId);
-            localStorage.setItem('salesHistory', JSON.stringify(updatedHistory));
-            
-            loadProducts();
-            loadSalesHistory();
-            
-            alert(`Return processed: ${sale.quantity} units of ${sale.productName}`);
+            // Remove sale from DB (or mark as returned)
+            const { error } = await supabase.from('sales').delete().eq('id', saleId);
+
+            await loadProducts();
+            await loadSalesHistory();
+
+            alert(`RETURN PROCESSED: Inventory restocked.`);
         } else {
             alert('Error processing return. Please try again.');
         }
@@ -122,9 +110,9 @@ const SalesManagement = () => {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 {/* Sale Form */}
                 <div className={`border-2 border-fashion-orange/20 p-6 transition-all duration-1000 transform ${isAnimating ? 'translate-x-0 opacity-100' : '-translate-x-10 opacity-0'}`}
-                     style={{ transitionDelay: '200ms' }}>
+                    style={{ transitionDelay: '200ms' }}>
                     <h2 className="text-xl font-bold text-fashion-orange mb-6">Process Sale</h2>
-                    
+
                     <div className="space-y-4">
                         <div>
                             <label className="block text-sm font-medium mb-2">Select Product</label>
@@ -186,9 +174,9 @@ const SalesManagement = () => {
 
                 {/* Recent Sales */}
                 <div className={`border-2 border-fashion-orange/20 p-6 transition-all duration-1000 transform ${isAnimating ? 'translate-x-0 opacity-100' : 'translate-x-10 opacity-0'}`}
-                     style={{ transitionDelay: '400ms' }}>
+                    style={{ transitionDelay: '400ms' }}>
                     <h2 className="text-xl font-bold text-fashion-orange mb-6">Recent Sales</h2>
-                    
+
                     <div className="space-y-3 max-h-96 overflow-y-auto">
                         {salesHistory.length === 0 ? (
                             <p className="text-gray-400 text-center py-8">No sales recorded yet</p>
@@ -226,14 +214,14 @@ const SalesManagement = () => {
 
             {/* Stock Alerts */}
             <div className={`mt-8 border-2 border-fashion-orange/20 p-6 transition-all duration-1000 transform ${isAnimating ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}
-                 style={{ transitionDelay: '600ms' }}>
+                style={{ transitionDelay: '600ms' }}>
                 <h2 className="text-xl font-bold text-fashion-orange mb-6">Stock Alerts</h2>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {(() => {
                         const lowStockProducts = inventoryManager.getLowStockProducts();
                         const alerts = inventoryManager.getStockAlerts().filter(a => !a.acknowledged);
-                        
+
                         return (
                             <>
                                 <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-lg">
@@ -250,7 +238,7 @@ const SalesManagement = () => {
                                         </div>
                                     )}
                                 </div>
-                                
+
                                 <div className="p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
                                     <div className="text-yellow-400 font-bold mb-2">Pending Alerts</div>
                                     {alerts.length === 0 ? (
