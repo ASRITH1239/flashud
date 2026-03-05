@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '../lib/supabaseClient';
 
 const Login = () => {
     const navigate = useNavigate();
@@ -14,6 +15,30 @@ const Login = () => {
 
     useEffect(() => {
         setIsAnimating(true);
+
+        // Security: Disable right-click
+        document.addEventListener('contextmenu', (e) => e.preventDefault());
+
+        // Security: Disable keyboard shortcuts
+        const handleKeyDown = (e) => {
+            if (
+                e.key === 'F12' ||
+                (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'J' || e.key === 'C')) ||
+                (e.ctrlKey && e.key === 'u')
+            ) {
+                e.preventDefault();
+                alert('View Source is disabled for security reasons.');
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+
+        // Branding: Console message
+        console.log("%c© Copyright by Flashud Portfolio. All Rights Reserved.", "color: #FFD700; background: #000000; font-size: 16px; font-weight: bold; padding: 10px;");
+
+        return () => {
+            document.removeEventListener('contextmenu', (e) => e.preventDefault());
+            window.removeEventListener('keydown', handleKeyDown);
+        };
     }, []);
 
     const handleInputChange = (e) => {
@@ -22,7 +47,24 @@ const Login = () => {
             ...prev,
             [name]: value
         }));
-        setError(''); // Clear error when user types
+        setError('');
+    };
+
+    const handleGoogleLogin = async () => {
+        setIsLoading(true);
+        try {
+            const { error } = await supabase.auth.signInWithOAuth({
+                provider: 'google',
+                options: {
+                    redirectTo: window.location.origin,
+                }
+            });
+            if (error) throw error;
+        } catch (err) {
+            setError('Google Login failed: ' + err.message);
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     const handleSubmit = async (e) => {
@@ -30,45 +72,36 @@ const Login = () => {
         setIsLoading(true);
         setError('');
 
-        // Basic validation
         if (!formData.email || !formData.password) {
             setError('Please fill in all fields');
             setIsLoading(false);
             return;
         }
 
-        // Email validation
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(formData.email)) {
-            setError('Please enter a valid email address');
-            setIsLoading(false);
-            return;
-        }
-
-        // Simulate API call for authentication
         try {
-            // In a real application, you would make an API call here
-            // For demo purposes, we'll use a simple check
-            await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate network delay
+            const inputEmail = formData.email.trim().toLowerCase();
+            const inputPass = formData.password.trim();
+            const targetEmail = 'flashud4@gmail.com';
+            const validPasswords = ['admin@123', 'FLASHUD@2208', 'FLASHUD@2208f'];
 
-            // Check against stored admin users or default credentials
-            const storedAdmins = JSON.parse(localStorage.getItem('adminUsers') || '[]');
-            const defaultAdmin = { email: 'admin@flashud.com', password: 'admin123' };
-            
-            const allAdmins = [defaultAdmin, ...storedAdmins];
-            const isValidAdmin = allAdmins.some(admin => 
-                admin.email === formData.email && admin.password === formData.password
-            );
-            
-            if (isValidAdmin) {
-                // Store authentication token/session
+            if (inputEmail === targetEmail && validPasswords.includes(inputPass)) {
                 localStorage.setItem('isAuthenticated', 'true');
                 localStorage.setItem('adminEmail', formData.email);
-                
-                // Redirect to dashboard
                 navigate('/');
             } else {
-                setError('Invalid email or password');
+                // If not hardcoded, check Supabase (Optional fallback)
+                const { data, error } = await supabase.auth.signInWithPassword({
+                    email: formData.email,
+                    password: formData.password,
+                });
+
+                if (error) {
+                    setError('Invalid credentials');
+                } else {
+                    localStorage.setItem('isAuthenticated', 'true');
+                    localStorage.setItem('adminEmail', data.user.email);
+                    navigate('/');
+                }
             }
         } catch (err) {
             setError('Login failed. Please try again.');
@@ -78,58 +111,56 @@ const Login = () => {
     };
 
     return (
-        <div className="min-h-screen bg-fashion-black flex items-center justify-center px-4 overflow-hidden relative">
-            {/* Animated Background Elements */}
-            <div className="absolute inset-0 overflow-hidden">
-                <div className={`absolute top-20 left-20 w-72 h-72 bg-fashion-orange rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse ${isAnimating ? 'animate-bounce' : ''}`}></div>
-                <div className={`absolute top-40 right-20 w-96 h-96 bg-fashion-orange rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse ${isAnimating ? 'animate-ping' : ''} animation-delay-2000`}></div>
-                <div className={`absolute bottom-20 left-1/2 w-80 h-80 bg-fashion-orange rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse ${isAnimating ? 'animate-spin' : ''} animation-delay-4000`}></div>
-            </div>
+        <div className="min-h-screen flex items-center justify-center px-4 overflow-hidden relative selection:bg-brand-orange selection:text-white">
+            {/* Background ambient glow specific to login */}
+            <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-brand-orange/20 rounded-full filter blur-[100px] pointer-events-none"></div>
+            <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-brand-gold/10 rounded-full filter blur-[100px] pointer-events-none"></div>
 
             <div className={`max-w-md w-full relative z-10 transition-all duration-1000 transform ${isAnimating ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
-                {/* Logo/Brand with Animation */}
-                <div className={`text-center mb-8 transition-all duration-1000 delay-300 ${isAnimating ? 'translate-y-0 opacity-100' : '-translate-y-10 opacity-0'}`}>
+                {/* Logo/Brand */}
+                <div className={`text-center mb-10 transition-all duration-1000 delay-300 ${isAnimating ? 'translate-y-0 opacity-100' : '-translate-y-10 opacity-0'}`}>
                     <div className="inline-block relative">
-                        <h1 className="text-4xl font-bold text-fashion-orange uppercase tracking-widest mb-2 animate-pulse">
-                            FlashUD
+                        <div className="w-20 h-20 rounded-2xl bg-brand-gradient mx-auto mb-6 flex items-center justify-center text-4xl font-bold text-white shadow-[0_0_20px_rgba(255,123,0,0.5)]">
+                            F
+                        </div>
+                        <h1 className="text-3xl font-light text-white uppercase tracking-[0.2em]">
+                            Flashud <span className="text-brand-orange font-medium drop-shadow-[0_0_8px_rgba(255,123,0,0.4)]">Admin</span>
                         </h1>
-                        <div className="absolute -inset-1 bg-fashion-orange rounded-lg blur opacity-25 animate-pulse"></div>
                     </div>
-                    <p className="text-gray-400 transition-all duration-1000 delay-500">Admin Portal</p>
                 </div>
 
                 {/* Login Form */}
-                <div className={`border-2 border-fashion-orange/20 p-8 transition-all duration-1000 delay-700 ${isAnimating ? 'scale-100 opacity-100' : 'scale-95 opacity-0'}`}>
-                    <h2 className="text-2xl font-bold text-fashion-orange mb-6 text-center">
-                        Admin Login
+                <div className={`bg-white/5 backdrop-blur-xl border border-white/10 p-10 rounded-3xl transition-all duration-1000 delay-700 shadow-[0_8px_32px_0_rgba(0,0,0,0.3)] ${isAnimating ? 'scale-100 opacity-100' : 'scale-95 opacity-0'}`}>
+                    <h2 className="text-xl font-medium text-white/90 mb-8 uppercase tracking-widest text-center">
+                        Secure Portal
                     </h2>
 
                     {error && (
-                        <div className="mb-4 p-3 bg-red-500/20 border border-red-500 rounded-lg text-red-500 text-sm">
+                        <div className="mb-6 p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm font-medium text-center backdrop-blur-sm">
                             {error}
                         </div>
                     )}
 
-                    <form onSubmit={handleSubmit} className="space-y-6">
-                        <div className="relative">
-                            <label className="block text-sm font-medium mb-2">
-                                Email Address
+                    <form onSubmit={handleSubmit} className="space-y-5">
+                        <div>
+                            <label className="block text-xs font-semibold uppercase tracking-widest mb-2 text-white/60 pl-1">
+                                Identity (Email)
                             </label>
                             <input
                                 type="email"
                                 name="email"
                                 value={formData.email}
                                 onChange={handleInputChange}
-                                placeholder="admin@flashud.com"
-                                className="w-full px-4 py-3 bg-fashion-black border border-fashion-orange/20 rounded-lg focus:outline-none focus:border-fashion-orange text-white placeholder-gray-500 transition-all duration-300 focus:scale-[1.02]"
+                                placeholder="flashud@gmail.com"
+                                className="w-full px-5 py-4 rounded-xl bg-black/20 border border-white/10 text-white placeholder:text-white/30 focus:outline-none focus:border-brand-orange focus:ring-1 focus:ring-brand-orange transition-all"
                                 required
                                 disabled={isLoading}
                             />
                         </div>
 
-                        <div className="relative">
-                            <label className="block text-sm font-medium mb-2">
-                                Password
+                        <div>
+                            <label className="block text-xs font-semibold uppercase tracking-widest mb-2 text-white/60 pl-1">
+                                Security Code (Password)
                             </label>
                             <div className="relative">
                                 <input
@@ -137,65 +168,50 @@ const Login = () => {
                                     name="password"
                                     value={formData.password}
                                     onChange={handleInputChange}
-                                    placeholder="Enter your password"
-                                    className="w-full px-4 py-3 bg-fashion-black border border-fashion-orange/20 rounded-lg focus:outline-none focus:border-fashion-orange text-white placeholder-gray-500 transition-all duration-300 focus:scale-[1.02] pr-12"
+                                    placeholder="••••••••"
+                                    className="w-full px-5 py-4 rounded-xl bg-black/20 border border-white/10 text-white placeholder:text-white/30 focus:outline-none focus:border-brand-orange focus:ring-1 focus:ring-brand-orange transition-all pr-16"
                                     required
                                     disabled={isLoading}
                                 />
                                 <button
                                     type="button"
                                     onClick={() => setShowPassword(!showPassword)}
-                                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-fashion-orange transition-colors"
+                                    className="absolute right-5 top-1/2 -translate-y-1/2 text-white/50 text-xs font-bold uppercase tracking-wider hover:text-brand-orange transition-colors"
                                     disabled={isLoading}
                                 >
-                                    {showPassword ? '👁️' : '👁️‍🗨️'}
+                                    {showPassword ? 'Hide' : 'Show'}
                                 </button>
                             </div>
                         </div>
 
-                        <button
-                            type="submit"
-                            disabled={isLoading}
-                            className={`w-full py-3 font-bold rounded-lg border-2 transition-all transform hover:scale-[1.02] ${
-                                isLoading
-                                    ? 'bg-gray-700 text-gray-400 border-gray-600 cursor-not-allowed'
-                                    : 'bg-fashion-orange text-fashion-black border-fashion-orange hover:bg-transparent hover:text-fashion-orange'
-                            }`}
-                        >
-                            {isLoading ? (
-                                <span className="flex items-center justify-center gap-2">
-                                    <span className="animate-spin">⚡</span>
-                                    Signing In...
-                                </span>
-                            ) : (
-                                'Sign In'
-                            )}
-                        </button>
+                        <div className="pt-6 space-y-4">
+                            <button
+                                type="submit"
+                                disabled={isLoading}
+                                className="w-full py-4 rounded-xl bg-brand-gradient text-white font-bold uppercase tracking-widest shadow-[0_0_20px_rgba(255,123,0,0.3)] hover:shadow-[0_0_30px_rgba(255,123,0,0.5)] hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                            >
+                                {isLoading ? 'Authenticating...' : 'Sign In To Portal'}
+                            </button>
 
-                        <div className="text-center">
                             <button
                                 type="button"
-                                onClick={() => navigate('/register')}
-                                className="text-fashion-orange hover:text-fashion-orange/80 transition-colors text-sm"
+                                onClick={handleGoogleLogin}
+                                disabled={isLoading}
+                                className="w-full py-4 rounded-xl bg-white/5 border border-white/10 text-white font-medium hover:bg-white/10 transition-all flex items-center justify-center gap-3 group disabled:opacity-50"
                             >
-                                Don't have an account? Register Admin
+                                <svg className="w-5 h-5 text-white/70 group-hover:text-white transition-colors" viewBox="0 0 24 24">
+                                    <path fill="currentColor" d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.747-.067-1.48-.187-2.187H12.48z" />
+                                </svg>
+                                Continue with Google
                             </button>
                         </div>
                     </form>
-
-                    {/* Demo Credentials Info */}
-                    <div className="mt-6 p-4 bg-fashion-orange/10 border border-fashion-orange/20 rounded-lg">
-                        <p className="text-xs text-gray-400 text-center">
-                            <strong>Demo Credentials:</strong><br />
-                            Email: admin@flashud.com<br />
-                            Password: admin123
-                        </p>
-                    </div>
                 </div>
 
-                {/* Footer */}
-                <div className="text-center mt-8 text-gray-500 text-sm">
-                    <p>© 2024 FlashUD Admin Portal</p>
+                {/* Footer / Copyright */}
+                <div className="text-center mt-12 text-white/40 font-medium text-xs space-y-2 uppercase tracking-[0.2em]">
+                    <p>© Copyright by Flashud Portfolio</p>
+                    <p className="opacity-50 tracking-wider">Secure Access Only</p>
                 </div>
             </div>
         </div>

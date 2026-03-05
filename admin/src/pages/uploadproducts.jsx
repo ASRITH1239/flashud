@@ -1,36 +1,59 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import inventoryManager from '../utils/inventoryManager';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { supabase } from '../lib/supabaseClient';
 
 const UploadProducts = () => {
     const navigate = useNavigate();
-    
-    // Form state
+    const [searchParams] = useSearchParams();
+    const editId = searchParams.get('edit');
+
+    const [isLoading, setIsLoading] = useState(false);
     const [formData, setFormData] = useState({
-        productName: '',
-        productDescription: '',
-        actualPrice: '',
-        discountedPrice: '',
-        couponCode: '',
-        sizes: [
-            { size: 'S', stock: 0 },
-            { size: 'M', stock: 0 },
-            { size: 'L', stock: 0 },
-            { size: 'XL', stock: 0 }
-        ],
-        images: {
-            static: [true, true, true, true], // 4 pre-defined images
-            dynamic: [] // User uploaded images
-        }
+        name: '',
+        description: '',
+        original_price: '',
+        discounted_price: '',
+        stock: {
+            'S': 0,
+            'M': 0,
+            'L': 0,
+            'XL': 0
+        },
+        images: ['', '', '', ''],
+        is_archived: false,
+        category_id: null
     });
 
-    // Static image placeholders
-    const staticImagePlaceholders = [
-        'https://picsum.photos/seed/product1/300/300.jpg',
-        'https://picsum.photos/seed/product2/300/300.jpg',
-        'https://picsum.photos/seed/product3/300/300.jpg',
-        'https://picsum.photos/seed/product4/300/300.jpg'
-    ];
+    const [categories, setCategories] = useState([]);
+
+    useEffect(() => {
+        fetchCategories();
+        if (editId) {
+            fetchProductForEdit();
+        }
+    }, [editId]);
+
+    const fetchCategories = async () => {
+        const { data } = await supabase.from('categories').select('*');
+        if (data) setCategories(data);
+    };
+
+    const fetchProductForEdit = async () => {
+        setIsLoading(true);
+        const { data, error } = await supabase
+            .from('products')
+            .select('*')
+            .eq('id', editId)
+            .single();
+
+        if (data) {
+            setFormData({
+                ...data,
+                images: data.images || ['', '', '', '']
+            });
+        }
+        setIsLoading(false);
+    };
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
@@ -40,325 +63,247 @@ const UploadProducts = () => {
         }));
     };
 
-    const handleSizeChange = (index, field, value) => {
-        const newSizes = [...formData.sizes];
-        if (field === 'size') {
-            newSizes[index].size = value;
-        } else if (field === 'stock') {
-            newSizes[index].stock = parseInt(value) || 0;
-        }
+    const handleStockChange = (size, value) => {
         setFormData(prev => ({
             ...prev,
-            sizes: newSizes
-        }));
-    };
-
-    const addSizeOption = () => {
-        setFormData(prev => ({
-            ...prev,
-            sizes: [...prev.sizes, { size: '', stock: 0 }]
-        }));
-    };
-
-    const removeSizeOption = (index) => {
-        const newSizes = formData.sizes.filter((_, i) => i !== index);
-        setFormData(prev => ({
-            ...prev,
-            sizes: newSizes
-        }));
-    };
-
-    const toggleStaticImage = (index) => {
-        const newStatic = [...formData.images.static];
-        newStatic[index] = !newStatic[index];
-        setFormData(prev => ({
-            ...prev,
-            images: {
-                ...prev.images,
-                static: newStatic
+            stock: {
+                ...prev.stock,
+                [size]: parseInt(value) || 0
             }
         }));
     };
 
-    const handleDynamicImageUpload = (e) => {
-        const files = Array.from(e.target.files);
-        const newDynamicImages = files.map(file => ({
-            file,
-            preview: URL.createObjectURL(file)
-        }));
-        
+    const handleImageChange = (index, value) => {
+        const newImages = [...formData.images];
+        newImages[index] = value;
         setFormData(prev => ({
             ...prev,
-            images: {
-                ...prev.images,
-                dynamic: [...prev.images.dynamic, ...newDynamicImages]
-            }
+            images: newImages
         }));
     };
 
-    const removeDynamicImage = (index) => {
-        const newDynamic = formData.images.dynamic.filter((_, i) => i !== index);
-        setFormData(prev => ({
-            ...prev,
-            images: {
-                ...prev.images,
-                dynamic: newDynamic
-            }
-        }));
-    };
-
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        
-        // Validate that at least one size has stock
-        const validSizes = formData.sizes.filter(s => s.size.trim() !== '' && parseInt(s.stock) > 0);
-        if (validSizes.length === 0) {
-            alert('Please add at least one size with stock quantity');
+        setIsLoading(true);
+
+        const payload = {
+            ...formData,
+            original_price: parseFloat(formData.original_price),
+            discounted_price: parseFloat(formData.discounted_price),
+            images: formData.images.filter(img => img.trim() !== '')
+        };
+
+        if (payload.images.length === 0) {
+            alert('Please add at least 1 product image URL');
+            setIsLoading(false);
             return;
         }
 
-        // Prepare data for submission
-        const productData = {
-            ...formData,
-            actualPrice: parseFloat(formData.actualPrice),
-            discountedPrice: parseFloat(formData.discountedPrice),
-            sizes: formData.sizes.filter(s => s.size.trim() !== ''),
-            images: {
-                static: formData.images.static.map((enabled, index) => 
-                    enabled ? staticImagePlaceholders[index] : null
-                ).filter(Boolean),
-                dynamic: formData.images.dynamic.map(img => img.file)
-            }
-        };
-
         try {
-            // Save product using inventory manager
-            const savedProduct = inventoryManager.addProduct(productData);
-            console.log('Product saved successfully:', savedProduct);
-            
-            alert('Product uploaded successfully!');
+            let result;
+            if (editId) {
+                result = await supabase
+                    .from('products')
+                    .update(payload)
+                    .eq('id', editId);
+            } else {
+                result = await supabase
+                    .from('products')
+                    .insert([payload]);
+            }
+
+            if (result.error) throw result.error;
+
+            alert(editId ? 'ASSET UPDATED SUCCESSFULLY' : 'ASSET UPLOADED TO VAULT');
             navigate('/products');
         } catch (error) {
             console.error('Error saving product:', error);
-            alert('Error saving product. Please try again.');
+            alert('VAULT ERROR: ' + error.message);
+        } finally {
+            setIsLoading(false);
         }
     };
 
     return (
-        <div className="max-w-4xl mx-auto">
-            <div className="mb-8">
-                <h1 className="text-3xl font-bold text-fashion-orange uppercase tracking-widest mb-2">Upload New Product</h1>
-                <p className="text-gray-400">Add a new product to your inventory</p>
+        <div className="max-w-4xl mx-auto selection:bg-brand-orange selection:text-white pb-20">
+            <div className="mb-12">
+                <h1 className="text-3xl font-light text-white tracking-[0.2em] relative inline-block">
+                    {editId ? 'UPDATE' : 'UPLOAD'} <span className="font-bold text-brand-orange drop-shadow-[0_0_8px_rgba(255,123,0,0.4)]">ASSET</span>
+                </h1>
+                <div className="h-px w-24 bg-gradient-to-r from-brand-orange to-transparent mt-4"></div>
+                <p className="text-xs font-medium text-white/50 uppercase tracking-[0.1em] mt-3">
+                    {editId ? `Editing Product ID: ${editId}` : 'Onboarding new inventory item'}
+                </p>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-8">
-                {/* Basic Information */}
-                <div className="border-2 border-fashion-orange/20 p-6">
-                    <h2 className="text-xl font-bold text-fashion-orange mb-4">Basic Information</h2>
-                    
-                    <div className="space-y-4">
-                        <div>
-                            <label className="block text-sm font-medium mb-2">Product Name</label>
-                            <input
-                                type="text"
-                                name="productName"
-                                value={formData.productName}
-                                onChange={handleInputChange}
-                                className="w-full px-4 py-2 bg-fashion-black border border-fashion-orange/20 rounded-lg focus:outline-none focus:border-fashion-orange text-white"
-                                required
-                            />
-                        </div>
+            <form onSubmit={handleSubmit} className="space-y-10">
+                {/* Visual Identity (Images) */}
+                <div className="bg-white/5 backdrop-blur-md border border-white/10 p-8 rounded-3xl shadow-xl">
+                    <h2 className="text-lg font-light text-white uppercase tracking-[0.2em] mb-8 flex items-center gap-4">
+                        Asset Gallery (Max 4) <div className="h-px flex-1 bg-gradient-to-r from-white/20 to-transparent"></div>
+                    </h2>
 
-                        <div>
-                            <label className="block text-sm font-medium mb-2">Product Description</label>
-                            <textarea
-                                name="productDescription"
-                                value={formData.productDescription}
-                                onChange={handleInputChange}
-                                rows="4"
-                                className="w-full px-4 py-2 bg-fashion-black border border-fashion-orange/20 rounded-lg focus:outline-none focus:border-fashion-orange text-white resize-none"
-                                required
-                            />
-                        </div>
-                    </div>
-                </div>
-
-                {/* Size Options and Stock */}
-                <div className="border-2 border-fashion-orange/20 p-6">
-                    <h2 className="text-xl font-bold text-fashion-orange mb-4">Size Options & Stock</h2>
-                    
-                    <div className="space-y-3">
-                        {formData.sizes.map((sizeOption, index) => (
-                            <div key={index} className="flex gap-4 items-center">
-                                <input
-                                    type="text"
-                                    value={sizeOption.size}
-                                    onChange={(e) => handleSizeChange(index, 'size', e.target.value)}
-                                    placeholder="Size (e.g., S, M, L, XL)"
-                                    className="flex-1 px-4 py-2 bg-fashion-black border border-fashion-orange/20 rounded-lg focus:outline-none focus:border-fashion-orange text-white"
-                                />
-                                <input
-                                    type="number"
-                                    value={sizeOption.stock}
-                                    onChange={(e) => handleSizeChange(index, 'stock', e.target.value)}
-                                    placeholder="Stock"
-                                    min="0"
-                                    className="w-32 px-4 py-2 bg-fashion-black border border-fashion-orange/20 rounded-lg focus:outline-none focus:border-fashion-orange text-white"
-                                />
-                                {formData.sizes.length > 1 && (
-                                    <button
-                                        type="button"
-                                        onClick={() => removeSizeOption(index)}
-                                        className="px-3 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
-                                    >
-                                        Remove
-                                    </button>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        {formData.images.map((imgUrl, index) => (
+                            <div key={index} className="space-y-3">
+                                <label className="block text-[10px] font-semibold text-white/40 uppercase tracking-[0.2em] ml-1">
+                                    IMAGE SLOT {index + 1} {index === 0 && <span className="text-brand-orange ml-2 tracking-widest bg-brand-orange/10 px-2 py-0.5 rounded text-[8px]">(PRIMARY)</span>}
+                                </label>
+                                <div className="flex gap-2">
+                                    <input
+                                        type="text"
+                                        placeholder="https://example.com/image.jpg"
+                                        value={imgUrl}
+                                        onChange={(e) => handleImageChange(index, e.target.value)}
+                                        className="w-full px-5 py-3.5 rounded-xl bg-black/20 border border-white/10 text-white font-medium focus:outline-none focus:border-brand-orange focus:ring-1 focus:ring-brand-orange transition-all text-sm placeholder:text-white/30"
+                                    />
+                                </div>
+                                {imgUrl && (
+                                    <div className="w-full h-48 rounded-xl bg-black/40 border border-white/10 overflow-hidden mt-3 shadow-inner">
+                                        <img src={imgUrl} alt="Preview" className="w-full h-full object-cover" />
+                                    </div>
                                 )}
                             </div>
                         ))}
-                        
-                        <button
-                            type="button"
-                            onClick={addSizeOption}
-                            className="px-4 py-2 bg-fashion-orange text-fashion-black font-bold rounded-lg hover:bg-transparent hover:text-fashion-orange border-2 border-fashion-orange transition-all"
-                        >
-                            Add Size Option
-                        </button>
                     </div>
                 </div>
 
-                {/* Pricing */}
-                <div className="border-2 border-fashion-orange/20 p-6">
-                    <h2 className="text-xl font-bold text-fashion-orange mb-4">Pricing</h2>
-                    
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-sm font-medium mb-2">Actual Price ($)</label>
-                            <input
-                                type="number"
-                                name="actualPrice"
-                                value={formData.actualPrice}
-                                onChange={handleInputChange}
-                                step="0.01"
-                                min="0"
-                                className="w-full px-4 py-2 bg-fashion-black border border-fashion-orange/20 rounded-lg focus:outline-none focus:border-fashion-orange text-white"
-                                required
-                            />
-                        </div>
+                {/* Technical Specifications */}
+                <div className="bg-white/5 backdrop-blur-md border border-white/10 p-8 rounded-3xl shadow-xl">
+                    <h2 className="text-lg font-light text-white uppercase tracking-[0.2em] mb-8 flex items-center gap-4">
+                        Specifications <div className="h-px flex-1 bg-gradient-to-r from-white/20 to-transparent"></div>
+                    </h2>
 
+                    <div className="space-y-8">
                         <div>
-                            <label className="block text-sm font-medium mb-2">Discounted Price ($)</label>
-                            <input
-                                type="number"
-                                name="discountedPrice"
-                                value={formData.discountedPrice}
-                                onChange={handleInputChange}
-                                step="0.01"
-                                min="0"
-                                className="w-full px-4 py-2 bg-fashion-black border border-fashion-orange/20 rounded-lg focus:outline-none focus:border-fashion-orange text-white"
-                                required
-                            />
-                        </div>
-
-                        <div className="col-span-2">
-                            <label className="block text-sm font-medium mb-2">Coupon Code (Optional)</label>
+                            <label className="block text-[10px] font-semibold text-white/40 uppercase tracking-[0.2em] mb-2 ml-1">Asset Nomenclature (Name)</label>
                             <input
                                 type="text"
-                                name="couponCode"
-                                value={formData.couponCode}
+                                name="name"
+                                value={formData.name}
                                 onChange={handleInputChange}
-                                placeholder="Enter coupon code"
-                                className="w-full px-4 py-2 bg-fashion-black border border-fashion-orange/20 rounded-lg focus:outline-none focus:border-fashion-orange text-white"
+                                className="w-full px-5 py-4 rounded-xl bg-black/20 border border-white/10 text-white font-medium tracking-wide focus:outline-none focus:border-brand-orange focus:ring-1 focus:ring-brand-orange transition-all"
+                                required
                             />
                         </div>
-                    </div>
-                </div>
 
-                {/* Images */}
-                <div className="border-2 border-fashion-orange/20 p-6">
-                    <h2 className="text-xl font-bold text-fashion-orange mb-4">Product Images</h2>
-                    
-                    {/* Static Images */}
-                    <div className="mb-6">
-                        <h3 className="text-lg font-semibold mb-3">Pre-defined Images</h3>
-                        <div className="grid grid-cols-4 gap-4">
-                            {staticImagePlaceholders.map((img, index) => (
-                                <div key={index} className="relative">
-                                    <img
-                                        src={img}
-                                        alt={`Static image ${index + 1}`}
-                                        className={`w-full h-32 object-cover rounded-lg border-2 ${formData.images.static[index] ? 'border-fashion-orange' : 'border-gray-600 opacity-50'}`}
-                                    />
-                                    <button
-                                        type="button"
-                                        onClick={() => toggleStaticImage(index)}
-                                        className={`absolute top-2 right-2 w-6 h-6 rounded-full ${formData.images.static[index] ? 'bg-fashion-orange text-fashion-black' : 'bg-gray-600 text-white'} flex items-center justify-center text-xs font-bold`}
-                                    >
-                                        {formData.images.static[index] ? '✓' : '+'}
-                                    </button>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* Dynamic Images */}
-                    <div>
-                        <h3 className="text-lg font-semibold mb-3">Upload Images</h3>
-                        
-                        <div className="mb-4">
-                            <input
-                                type="file"
-                                multiple
-                                accept="image/*"
-                                onChange={handleDynamicImageUpload}
-                                className="hidden"
-                                id="image-upload"
+                        <div>
+                            <label className="block text-[10px] font-semibold text-white/40 uppercase tracking-[0.2em] mb-2 ml-1">Strategic Overview (Description)</label>
+                            <textarea
+                                name="description"
+                                value={formData.description}
+                                onChange={handleInputChange}
+                                rows="4"
+                                className="w-full px-5 py-4 rounded-xl bg-black/20 border border-white/10 text-white font-medium tracking-wide focus:outline-none focus:border-brand-orange focus:ring-1 focus:ring-brand-orange transition-all"
+                                required
                             />
-                            <label
-                                htmlFor="image-upload"
-                                className="inline-block px-4 py-2 bg-fashion-orange text-fashion-black font-bold rounded-lg hover:bg-transparent hover:text-fashion-orange border-2 border-fashion-orange transition-all cursor-pointer"
-                            >
-                                Choose Images
-                            </label>
                         </div>
 
-                        {formData.images.dynamic.length > 0 && (
-                            <div className="grid grid-cols-4 gap-4">
-                                {formData.images.dynamic.map((img, index) => (
-                                    <div key={index} className="relative">
-                                        <img
-                                            src={img.preview}
-                                            alt={`Uploaded image ${index + 1}`}
-                                            className="w-full h-32 object-cover rounded-lg border-2 border-fashion-orange"
-                                        />
-                                        <button
-                                            type="button"
-                                            onClick={() => removeDynamicImage(index)}
-                                            className="absolute top-2 right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-xs font-bold hover:bg-red-600"
-                                        >
-                                            ×
-                                        </button>
-                                    </div>
-                                ))}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div>
+                                <label className="block text-[10px] font-semibold text-white/40 uppercase tracking-[0.2em] mb-2 ml-1">Category</label>
+                                <select
+                                    name="category_id"
+                                    value={formData.category_id || ''}
+                                    onChange={handleInputChange}
+                                    className="w-full px-5 py-4 rounded-xl bg-black/20 border border-white/10 text-white font-medium tracking-wide focus:outline-none focus:border-brand-orange focus:ring-1 focus:ring-brand-orange transition-all [&>option]:bg-brand-dark"
+                                >
+                                    <option value="">SELECT COLLECTION</option>
+                                    {categories.map(cat => (
+                                        <option key={cat.id} value={cat.id}>{cat.name}</option>
+                                    ))}
+                                </select>
                             </div>
-                        )}
+                            <div className="flex items-center mt-6">
+                                <label className="flex items-center gap-4 cursor-pointer group">
+                                    <div className="relative flex items-center justify-center">
+                                        <input
+                                            type="checkbox"
+                                            checked={formData.is_archived}
+                                            onChange={(e) => setFormData(prev => ({ ...prev, is_archived: e.target.checked }))}
+                                            className="w-6 h-6 rounded-md border border-white/30 bg-black/20 appearance-none cursor-pointer checked:bg-brand-orange checked:border-brand-orange transition-all peer"
+                                        />
+                                        <span className="pointer-events-none absolute text-white opacity-0 peer-checked:opacity-100 font-bold transition-opacity">✓</span>
+                                    </div>
+                                    <span className="text-[10px] font-semibold text-white/60 uppercase tracking-[0.2em] group-hover:text-white transition-colors">ARCHIVE ASSET</span>
+                                </label>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                {/* Submit Buttons */}
-                <div className="flex gap-4">
+                {/* Stock Distribution */}
+                <div className="bg-white/5 backdrop-blur-md border border-white/10 p-8 rounded-3xl shadow-xl">
+                    <h2 className="text-lg font-light text-white uppercase tracking-[0.2em] mb-8 flex items-center gap-4">
+                        Stock Allocation <div className="h-px flex-1 bg-gradient-to-r from-white/20 to-transparent"></div>
+                    </h2>
+
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                        {Object.entries(formData.stock).map(([size, qty]) => (
+                            <div key={size}>
+                                <label className="block text-[10px] font-semibold text-white/40 uppercase tracking-[0.2em] mb-2 ml-1">SIZE {size}</label>
+                                <input
+                                    type="number"
+                                    value={qty}
+                                    onChange={(e) => handleStockChange(size, e.target.value)}
+                                    min="0"
+                                    className="w-full px-5 py-4 rounded-xl bg-black/20 border border-white/10 text-white font-medium tracking-wide focus:outline-none focus:border-brand-orange focus:ring-1 focus:ring-brand-orange transition-all text-center"
+                                />
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+                {/* Financial Engineering (Pricing) */}
+                <div className="bg-white/5 backdrop-blur-md border border-white/10 p-8 rounded-3xl shadow-xl">
+                    <h2 className="text-lg font-light text-white uppercase tracking-[0.2em] mb-8 flex items-center gap-4">
+                        Commercial Pricing <div className="h-px flex-1 bg-gradient-to-r from-white/20 to-transparent"></div>
+                    </h2>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div>
+                            <label className="block text-[10px] font-semibold text-white/40 uppercase tracking-[0.2em] mb-2 ml-1">MSRP (Original Price $)</label>
+                            <input
+                                type="number"
+                                name="original_price"
+                                value={formData.original_price}
+                                onChange={handleInputChange}
+                                step="0.01"
+                                className="w-full px-5 py-4 rounded-xl bg-black/20 border border-white/10 text-white font-medium tracking-wide focus:outline-none focus:border-brand-orange focus:ring-1 focus:ring-brand-orange transition-all"
+                                required
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-[10px] font-semibold text-white/40 uppercase tracking-[0.2em] mb-2 ml-1">Flash Price (Discounted $)</label>
+                            <input
+                                type="number"
+                                name="discounted_price"
+                                value={formData.discounted_price}
+                                onChange={handleInputChange}
+                                step="0.01"
+                                className="w-full px-5 py-4 rounded-xl bg-brand-orange/10 border border-brand-orange/30 text-brand-orange font-bold tracking-wide focus:outline-none focus:border-brand-orange focus:ring-1 focus:ring-brand-orange transition-all"
+                                required
+                            />
+                        </div>
+                    </div>
+                </div>
+
+                {/* Final Verification */}
+                <div className="flex flex-col md:flex-row gap-6">
                     <button
                         type="submit"
-                        className="px-6 py-3 bg-fashion-orange text-fashion-black font-bold rounded-lg hover:bg-transparent hover:text-fashion-orange border-2 border-fashion-orange transition-all"
+                        disabled={isLoading}
+                        className="flex-1 py-5 rounded-full bg-brand-gradient text-white font-bold uppercase tracking-widest shadow-[0_0_20px_rgba(255,123,0,0.3)] hover:shadow-[0_0_30px_rgba(255,123,0,0.5)] hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:shadow-none"
                     >
-                        Upload Product
+                        {isLoading ? 'EXECUTING TRANSACTION...' : (editId ? 'COMMIT ASSET UPDATE' : 'ONBOARD ASSET TO VAULT')}
                     </button>
                     <button
                         type="button"
                         onClick={() => navigate('/products')}
-                        className="px-6 py-3 bg-transparent text-fashion-orange font-bold rounded-lg border-2 border-fashion-orange hover:bg-fashion-orange hover:text-fashion-black transition-all"
+                        className="px-10 py-5 rounded-full bg-white/5 border border-white/10 text-white font-bold uppercase tracking-widest hover:bg-white/10 hover:text-brand-orange transition-all"
                     >
-                        Cancel
+                        ABORT
                     </button>
                 </div>
             </form>

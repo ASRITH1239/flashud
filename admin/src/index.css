@@ -2,8 +2,18 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  @apply bg-fashion-black text-white;
-  margin: 0;
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+@font-face {
+  font-family: 'kindred';
+  src: url('/fonts/TANKINDRED-Display.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+@layer base {
+  body {
+    @apply bg-brand-darker text-white min-h-screen relative antialiased;
+    margin: 0;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    background-image: radial-gradient(circle at 50% 0%, rgba(255, 123, 0, 0.12) 0%, transparent 50%);
+  }
 }

@@ -1,170 +1,212 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import inventoryManager from '../utils/inventoryManager';
+import { supabase } from '../lib/supabaseClient';
 
 const Products = () => {
     const navigate = useNavigate();
     const [products, setProducts] = useState([]);
-    const [inventory, setInventory] = useState({});
+    const [isLoading, setIsLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [isAnimating, setIsAnimating] = useState(false);
 
     useEffect(() => {
         setIsAnimating(true);
-        loadProducts();
+        fetchProducts();
     }, []);
 
-    const loadProducts = () => {
-        const allProducts = inventoryManager.getAllProducts();
-        const allInventory = inventoryManager.getAllInventory();
-        setProducts(allProducts);
-        setInventory(allInventory);
-    };
+    const fetchProducts = async () => {
+        setIsLoading(true);
+        try {
+            const { data, error } = await supabase
+                .from('products')
+                .select('*')
+                .order('created_at', { ascending: false });
 
-    const filteredProducts = products.filter(product => 
-        product.productName.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-
-    const getStockStatus = (productId) => {
-        const productInventory = inventory[productId];
-        if (!productInventory) return { status: 'unknown', color: 'text-gray-400' };
-        
-        const totalStock = productInventory.totalStock;
-        if (totalStock === 0) return { status: 'OUT OF STOCK', color: 'text-red-500' };
-        if (totalStock <= 5) return { status: 'LOW STOCK', color: 'text-yellow-500' };
-        return { status: 'IN STOCK', color: 'text-green-500' };
-    };
-
-    const getSizeStockDisplay = (productId) => {
-        const productInventory = inventory[productId];
-        if (!productInventory) return 'N/A';
-        
-        return productInventory.sizes
-            .filter(size => size.currentStock > 0)
-            .map(size => `${size.size}(${size.currentStock})`)
-            .join(', ') || 'OUT OF STOCK';
-    };
-
-    const handleDeleteProduct = (productId) => {
-        if (window.confirm('Are you sure you want to delete this product?')) {
-            inventoryManager.deleteProduct(productId);
-            loadProducts();
+            if (error) throw error;
+            setProducts(data || []);
+        } catch (error) {
+            console.error('Error fetching products:', error);
+        } finally {
+            setIsLoading(false);
         }
     };
 
+    const toggleArchive = async (id, currentStatus) => {
+        try {
+            const { error } = await supabase
+                .from('products')
+                .update({ is_archived: !currentStatus })
+                .eq('id', id);
+
+            if (error) throw error;
+            fetchProducts();
+        } catch (error) {
+            alert('Error updating product status');
+        }
+    };
+
+    const deleteProduct = async (id) => {
+        if (!window.confirm('CRITICAL: Are you sure you want to PERMANENTLY delete this product?')) return;
+
+        try {
+            const { error } = await supabase
+                .from('products')
+                .delete()
+                .eq('id', id);
+
+            if (error) throw error;
+            fetchProducts();
+        } catch (error) {
+            alert('Error deleting product');
+        }
+    };
+
+    const filteredProducts = products.filter(product =>
+        product.name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
     return (
-        <div className="max-w-7xl mx-auto">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
-                <h2 className="text-3xl font-bold text-fashion-orange uppercase tracking-widest">Inventory</h2>
-                <div className="flex gap-4 items-center">
-                    <input
-                        type="text"
-                        placeholder="Search products..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="px-4 py-2 bg-fashion-black border border-fashion-orange/20 rounded-lg focus:outline-none focus:border-fashion-orange text-white placeholder-gray-500"
-                    />
-                    <button 
+        <div className="max-w-7xl mx-auto selection:bg-brand-orange selection:text-white pb-20">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12">
+                <div>
+                    <h2 className="text-3xl font-light text-white tracking-[0.2em] relative inline-block">
+                        INVENTORY <span className="font-bold text-brand-orange drop-shadow-[0_0_8px_rgba(255,123,0,0.4)]">VAULT</span>
+                    </h2>
+                    <div className="h-px w-24 bg-gradient-to-r from-brand-orange to-transparent mt-4"></div>
+                    <p className="text-xs font-medium text-white/50 uppercase tracking-[0.1em] mt-3">
+                        Manage your premium assets
+                    </p>
+                </div>
+
+                <div className="flex flex-wrap gap-4 w-full md:w-auto mt-6 md:mt-0">
+                    <div className="relative flex-1 md:flex-initial min-w-[300px]">
+                        <input
+                            type="text"
+                            placeholder="SEARCH BY PRODUCT NAME..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full pl-12 pr-5 py-3.5 rounded-full bg-black/20 border border-white/10 text-white font-medium tracking-wide focus:outline-none focus:border-brand-orange focus:ring-1 focus:ring-brand-orange transition-all placeholder:text-white/30 shadow-inner"
+                        />
+                        <span className="absolute left-5 top-1/2 -translate-y-1/2 text-white/50">🔍</span>
+                    </div>
+
+                    <button
                         onClick={() => navigate('/upload-product')}
-                        className="px-6 py-2 bg-fashion-orange text-fashion-black font-bold border-2 border-fashion-orange hover:bg-transparent hover:text-fashion-orange transition-all"
+                        className="px-8 py-3.5 rounded-full bg-brand-gradient text-white font-bold uppercase tracking-widest shadow-[0_0_20px_rgba(255,123,0,0.3)] hover:shadow-[0_0_30px_rgba(255,123,0,0.5)] hover:-translate-y-0.5 transition-all"
                     >
-                        ADD NEW PRODUCT
+                        + ADD NEW ASSET
                     </button>
                 </div>
             </div>
 
-            {/* Inventory Stats */}
-            <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-8">
-                {(() => {
-                    const stats = inventoryManager.getInventoryStats();
-                    return [
-                        { label: 'Total Products', value: stats.totalProducts },
-                        { label: 'Total Items', value: stats.totalStockItems },
-                        { label: 'Low Stock', value: stats.lowStockCount, color: 'text-yellow-500' },
-                        { label: 'Out of Stock', value: stats.outOfStockCount, color: 'text-red-500' }
-                    ];
-                })().map((stat, index) => (
-                    <div key={index} className={`border-2 border-fashion-orange/20 p-4 text-center ${isAnimating ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}
-                         style={{ transitionDelay: `${index * 100}ms` }}>
-                        <div className={`text-2xl font-bold ${stat.color || 'text-fashion-orange'}`}>{stat.value}</div>
-                        <div className="text-sm text-gray-400">{stat.label}</div>
-                    </div>
-                ))}
-            </div>
-
-            <div className="border-2 border-fashion-orange/20 overflow-hidden">
-                <table className="w-full text-left">
-                    <thead className="bg-fashion-orange/10">
-                        <tr>
-                            <th className="p-4 border-b-2 border-fashion-orange/20 uppercase text-xs tracking-widest font-bold">Product</th>
-                            <th className="p-4 border-b-2 border-fashion-orange/20 uppercase text-xs tracking-widest font-bold">Size Stock</th>
-                            <th className="p-4 border-b-2 border-fashion-orange/20 uppercase text-xs tracking-widest font-bold">Total Stock</th>
-                            <th className="p-4 border-b-2 border-fashion-orange/20 uppercase text-xs tracking-widest font-bold">Price</th>
-                            <th className="p-4 border-b-2 border-fashion-orange/20 uppercase text-xs tracking-widest font-bold">Status</th>
-                            <th className="p-4 border-b-2 border-fashion-orange/20 uppercase text-xs tracking-widest font-bold">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {filteredProducts.length === 0 ? (
-                            <tr>
-                                <td colSpan="6" className="p-8 text-center text-gray-400">
-                                    {searchTerm ? 'No products found matching your search' : 'No products in inventory. Add your first product!'}
-                                </td>
+            {/* Inventory Overview Grid */}
+            <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-3xl shadow-xl overflow-hidden mb-20">
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                        <thead>
+                            <tr className="border-b border-white/10">
+                                <th className="p-6 text-white/60 font-semibold uppercase tracking-widest text-xs">Preview</th>
+                                <th className="p-6 text-white/60 font-semibold uppercase tracking-widest text-xs">Product Details</th>
+                                <th className="p-6 text-white/60 font-semibold uppercase tracking-widest text-xs">Inventory</th>
+                                <th className="p-6 text-white/60 font-semibold uppercase tracking-widest text-xs">Pricing</th>
+                                <th className="p-6 text-white/60 font-semibold uppercase tracking-widest text-xs">Status</th>
+                                <th className="p-6 text-white/60 font-semibold uppercase tracking-widest text-xs text-right">Actions</th>
                             </tr>
-                        ) : (
-                            filteredProducts.map((product, index) => {
-                                const stockStatus = getStockStatus(product.id);
-                                const productInventory = inventory[product.id];
-                                
-                                return (
-                                    <tr key={product.id} className={`hover:bg-fashion-orange/5 transition-colors ${isAnimating ? 'translate-x-0 opacity-100' : '-translate-x-4 opacity-0'}`}
-                                         style={{ transitionDelay: `${index * 50}ms` }}>
-                                        <td className="p-4 border-b border-fashion-orange/10">
-                                            <div className="font-bold">{product.productName}</div>
-                                            <div className="text-sm opacity-50">{product.productDescription?.substring(0, 50)}...</div>
-                                        </td>
-                                        <td className="p-4 border-b border-fashion-orange/10">
-                                            <div className="text-sm">
-                                                {getSizeStockDisplay(product.id)}
+                        </thead>
+                        <tbody className="divide-y divide-white/5">
+                            {isLoading ? (
+                                <tr>
+                                    <td colSpan="6" className="p-20 text-center">
+                                        <div className="inline-block animate-spin text-4xl mb-4">⚙️</div>
+                                        <p className="font-black uppercase tracking-widest">Synchronizing Vault...</p>
+                                    </td>
+                                </tr>
+                            ) : filteredProducts.length === 0 ? (
+                                <tr>
+                                    <td colSpan="6" className="p-20 text-center font-black uppercase tracking-widest text-gray-400">
+                                        No assets found in the inventory.
+                                    </td>
+                                </tr>
+                            ) : (
+                                filteredProducts.map((product, index) => (
+                                    <tr key={product.id} className={`group hover:bg-fashion-orange/5 transition-colors ${product.is_archived ? 'opacity-50 grayscale' : ''}`}>
+                                        <td className="p-6">
+                                            <div className="w-16 h-20 rounded-lg bg-black/40 border border-white/10 overflow-hidden relative shadow-inner">
+                                                {product.images && product.images[0] ? (
+                                                    <img src={product.images[0]} alt="" className="w-full h-full object-cover" />
+                                                ) : (
+                                                    <div className="w-full h-full flex items-center justify-center text-[10px] font-medium text-white/30 uppercase tracking-widest">NO IMG</div>
+                                                )}
                                             </div>
                                         </td>
-                                        <td className="p-4 border-b border-fashion-orange/10">
-                                            <div className="font-mono">{productInventory?.totalStock || 0}</div>
+                                        <td className="p-6">
+                                            <div className="font-semibold text-white uppercase tracking-wider mb-1">{product.name}</div>
+                                            <div className="text-xs font-medium text-white/50 uppercase tracking-[0.1em] truncate max-w-[200px]">
+                                                {product.description || 'No description provided'}
+                                            </div>
                                         </td>
-                                        <td className="p-4 border-b border-fashion-orange/10">
-                                            <div className="font-mono italic">${product.discountedPrice}</div>
+                                        <td className="p-6">
+                                            <div className="space-y-1.5 flex gap-2 flex-wrap">
+                                                {product.stock && Object.entries(product.stock).map(([size, qty]) => (
+                                                    <div key={size} className="flex items-center gap-1.5 px-2 py-1 rounded bg-white/5 border border-white/10">
+                                                        <span className="text-brand-orange text-[10px] font-bold uppercase">{size}</span>
+                                                        <span className="text-white/70 text-xs font-medium">{qty || 0}</span>
+                                                    </div>
+                                                ))}
+                                                {(!product.stock || Object.keys(product.stock).length === 0) && (
+                                                    <span className="text-[10px] font-medium text-red-400 uppercase tracking-widest px-2 py-1 bg-red-500/10 rounded">NO STOCK DEFINED</span>
+                                                )}
+                                            </div>
                                         </td>
-                                        <td className="p-4 border-b border-fashion-orange/10">
-                                            <span className={`font-bold text-xs ${stockStatus.color}`}>
-                                                {stockStatus.status}
-                                            </span>
+                                        <td className="p-6">
+                                            <div className="text-white/40 line-through text-xs">${product.original_price}</div>
+                                            <div className="text-lg font-medium text-white">${product.discounted_price}</div>
                                         </td>
-                                        <td className="p-4 border-b border-fashion-orange/10">
-                                            <button 
-                                                onClick={() => navigate('/sales-management')}
-                                                className="text-fashion-orange font-bold text-xs mr-4 hover:underline"
-                                            >
-                                                SELL
-                                            </button>
-                                            <button 
-                                                onClick={() => navigate(`/upload-product?edit=${product.id}`)}
-                                                className="text-fashion-orange font-bold text-xs mr-4 hover:underline"
-                                            >
-                                                EDIT
-                                            </button>
-                                            <button 
-                                                onClick={() => handleDeleteProduct(product.id)}
-                                                className="text-red-500 font-bold text-xs hover:underline"
-                                            >
-                                                DELETE
-                                            </button>
+                                        <td className="p-6">
+                                            {product.is_archived ? (
+                                                <span className="px-3 py-1 bg-white/10 text-white/50 border border-white/20 text-[10px] font-bold uppercase tracking-widest rounded-full">ARCHIVED</span>
+                                            ) : (
+                                                <span className="px-3 py-1 bg-green-500/10 text-green-400 border border-green-500/30 text-[10px] font-bold uppercase tracking-widest rounded-full">LIVE</span>
+                                            )}
+                                        </td>
+                                        <td className="p-6 text-right">
+                                            <div className="flex justify-end gap-2">
+                                                <button
+                                                    onClick={() => navigate(`/upload-product?edit=${product.id}`)}
+                                                    className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 hover:text-brand-orange transition-all group"
+                                                    title="EDIT ASSET"
+                                                >
+                                                    <span className="text-sm group-hover:scale-110 transition-transform">🖊️</span>
+                                                </button>
+                                                <button
+                                                    onClick={() => toggleArchive(product.id, product.is_archived)}
+                                                    className={`w-8 h-8 rounded-full border flex items-center justify-center transition-all group ${product.is_archived ? 'bg-brand-orange/10 border-brand-orange/30 text-brand-orange hover:bg-brand-orange/20' : 'bg-white/5 border-white/10 hover:bg-white/10'}`}
+                                                    title={product.is_archived ? "UNARCHIVE" : "ARCHIVE"}
+                                                >
+                                                    <span className="text-sm group-hover:scale-110 transition-transform">📦</span>
+                                                </button>
+                                                <button
+                                                    onClick={() => deleteProduct(product.id)}
+                                                    className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-red-500/20 hover:border-red-500/30 transition-all group"
+                                                    title="DELETE PERMANENTLY"
+                                                >
+                                                    <span className="text-sm group-hover:scale-110 transition-transform">🗑️</span>
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
-                                );
-                            })
-                        )}
-                    </tbody>
-                </table>
+                                ))
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            {/* Footer Notice */}
+            <div className="text-center py-10">
+                <p className="text-[10px] font-medium text-white/30 uppercase tracking-[0.3em]">
+                    © FLASHUD PREVIEW PORTAL // SECURE INVENTORY MANAGEMENT
+                </p>
             </div>
         </div>
     );

@@ -1,4 +1,6 @@
+import { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { supabase } from './lib/supabaseClient';
 import Header from './components/Header';
 import Dashboard from './pages/Dashboard';
 import Products from './pages/Products';
@@ -10,12 +12,47 @@ import Categories from './pages/Categories';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import AdminManagement from './pages/AdminManagement';
+import Coupons from './pages/Coupons';
 import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
+    const [authInitialized, setAuthInitialized] = useState(false);
+
+    useEffect(() => {
+        // Check active Supabase session
+        supabase.auth.getSession().then(({ data: { session } }) => {
+            if (session) {
+                localStorage.setItem('isAuthenticated', 'true');
+                localStorage.setItem('adminEmail', session.user.email);
+            }
+            setAuthInitialized(true);
+        });
+
+        // Listen for Google Auth redirects or logouts
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+            if (event === 'SIGNED_IN' && session) {
+                localStorage.setItem('isAuthenticated', 'true');
+                localStorage.setItem('adminEmail', session.user.email);
+            } else if (event === 'SIGNED_OUT') {
+                localStorage.removeItem('isAuthenticated');
+                localStorage.removeItem('adminEmail');
+            }
+        });
+
+        return () => subscription.unsubscribe();
+    }, []);
+
+    if (!authInitialized) {
+        return (
+            <div className="min-h-screen bg-black flex items-center justify-center">
+                <div className="text-orange-500 uppercase tracking-[0.2em] text-sm animate-pulse font-medium">Authenticating Portal...</div>
+            </div>
+        );
+    }
+
     return (
         <Router>
-            <div className="min-h-screen bg-fashion-black text-white">
+            <div className="min-h-screen text-white font-sans relative selection:bg-brand-orange selection:text-white">
                 <Routes>
                     <Route path="/login" element={<Login />} />
                     <Route path="/register" element={<Register />} />
@@ -72,6 +109,14 @@ function App() {
                             <Header />
                             <main className="p-10">
                                 <Categories />
+                            </main>
+                        </ProtectedRoute>
+                    } />
+                    <Route path="/coupons" element={
+                        <ProtectedRoute>
+                            <Header />
+                            <main className="p-10">
+                                <Coupons />
                             </main>
                         </ProtectedRoute>
                     } />

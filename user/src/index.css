@@ -2,8 +2,36 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-    @apply bg-fashion-black text-white;
-    margin: 0;
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+@font-face {
+    font-family: 'kindred';
+    src: url('/fonts/TANKINDRED-Display.otf') format('opentype');
+    font-weight: normal;
+    font-style: normal;
+}
+
+@layer base {
+    body {
+        @apply bg-white text-brand-dark antialiased selection:bg-brand-orange selection:text-white;
+        margin: 0;
+        font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    }
+}
+
+/* Custom Scrollbar for Premium Feel */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.05);
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(255, 123, 0, 0.3);
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 123, 0, 0.6);
 }
