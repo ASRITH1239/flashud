@@ -5,6 +5,7 @@ const Categories = () => {
     const [categories, setCategories] = useState([]);
     const [newCategory, setNewCategory] = useState({ name: '', slug: '', thumbnail_url: '' });
     const [isLoading, setIsLoading] = useState(true);
+    const [isUploading, setIsUploading] = useState(false);
 
     useEffect(() => {
         fetchCategories();
@@ -36,6 +37,35 @@ const Categories = () => {
         } else {
             setNewCategory({ name: '', slug: '', thumbnail_url: '' });
             fetchCategories();
+        }
+    };
+
+    const handleFileUpload = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        setIsUploading(true);
+        try {
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${Math.random()}.${fileExt}`;
+            const filePath = `categories/${fileName}`;
+
+            const { error: uploadError } = await supabase.storage
+                .from('product-images')
+                .upload(filePath, file);
+
+            if (uploadError) throw uploadError;
+
+            const { data: { publicUrl } } = supabase.storage
+                .from('product-images')
+                .getPublicUrl(filePath);
+
+            setNewCategory(prev => ({ ...prev, thumbnail_url: publicUrl }));
+        } catch (error) {
+            console.error('Upload error:', error);
+            alert('Error uploading thumbnail: ' + error.message);
+        } finally {
+            setIsUploading(false);
         }
     };
 
@@ -75,14 +105,41 @@ const Categories = () => {
                             className="flex-1 px-5 py-4 rounded-xl bg-black/20 border border-white/10 text-white font-medium tracking-wide focus:outline-none focus:border-brand-orange focus:ring-1 focus:ring-brand-orange transition-all placeholder:text-white/30"
                             required
                         />
-                        <input
-                            type="text"
-                            placeholder="THUMBNAIL URL (HTTP://...)"
-                            value={newCategory.thumbnail_url}
-                            onChange={(e) => setNewCategory({ ...newCategory, thumbnail_url: e.target.value })}
-                            className="flex-1 px-5 py-4 rounded-xl bg-black/20 border border-white/10 text-white font-medium tracking-wide focus:outline-none focus:border-brand-orange focus:ring-1 focus:ring-brand-orange transition-all placeholder:text-white/30"
-                            required
-                        />
+                        <div className="flex-1 space-y-4">
+                            <div className="relative h-14 bg-black/30 border border-white/10 rounded-xl overflow-hidden hover:border-brand-orange/50 transition-all group">
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={handleFileUpload}
+                                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                                    disabled={isUploading}
+                                />
+                                <div className="px-5 py-4 text-[10px] font-bold text-white/40 flex items-center justify-center gap-3">
+                                    {isUploading ? (
+                                        <span className="animate-pulse tracking-widest">UPLOADING ASSET...</span>
+                                    ) : (
+                                        <>
+                                            <svg className="w-5 h-5 group-hover:text-brand-orange transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
+                                            <span className="group-hover:text-white transition-colors tracking-widest">CHOOSE LOCAL THUMBNAIL</span>
+                                        </>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="flex items-center gap-3">
+                                <div className="h-px flex-1 bg-white/5"></div>
+                                <span className="text-[8px] font-bold text-white/20 uppercase tracking-[0.3em]">OR URL</span>
+                                <div className="h-px flex-1 bg-white/5"></div>
+                            </div>
+
+                            <input
+                                type="text"
+                                placeholder="THUMBNAIL URL (HTTP://...)"
+                                value={newCategory.thumbnail_url}
+                                onChange={(e) => setNewCategory({ ...newCategory, thumbnail_url: e.target.value })}
+                                className="w-full px-5 py-4 rounded-xl bg-black/20 border border-white/10 text-white font-medium tracking-wide focus:outline-none focus:border-brand-orange focus:ring-1 focus:ring-brand-orange transition-all placeholder:text-white/30"
+                            />
+                        </div>
                     </div>
                     {newCategory.thumbnail_url && (
                         <div className="w-full h-32 rounded-xl border border-white/10 bg-black/20 overflow-hidden">

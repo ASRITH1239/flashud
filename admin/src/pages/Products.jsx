@@ -20,6 +20,7 @@ const Products = () => {
             const { data, error } = await supabase
                 .from('products')
                 .select('*')
+                .neq('name', '_HERO_IMAGE_')
                 .order('created_at', { ascending: false });
 
             if (error) throw error;

@@ -25,6 +25,8 @@ const UploadProducts = () => {
         is_new_in: false,
         new_in_duration: 7
     });
+    const [newSize, setNewSize] = useState('');
+    const [uploadingIndex, setUploadingIndex] = useState(null);
 
     const [categories, setCategories] = useState([]);
 
@@ -86,6 +88,55 @@ const UploadProducts = () => {
             ...prev,
             images: newImages
         }));
+    };
+
+    const handleFileUpload = async (index, e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        setUploadingIndex(index);
+        try {
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${Math.random()}.${fileExt}`;
+            const filePath = `${fileName}`;
+
+            const { error: uploadError } = await supabase.storage
+                .from('product-images')
+                .upload(filePath, file);
+
+            if (uploadError) throw uploadError;
+
+            const { data: { publicUrl } } = supabase.storage
+                .from('product-images')
+                .getPublicUrl(filePath);
+
+            handleImageChange(index, publicUrl);
+        } catch (error) {
+            console.error('Upload error:', error);
+            alert('Error uploading image: ' + error.message);
+        } finally {
+            setUploadingIndex(null);
+        }
+    };
+
+    const addCustomSize = () => {
+        if (!newSize.trim()) return;
+        setFormData(prev => ({
+            ...prev,
+            stock: {
+                ...prev.stock,
+                [newSize.toUpperCase()]: 0
+            }
+        }));
+        setNewSize('');
+    };
+
+    const removeSize = (size) => {
+        setFormData(prev => {
+            const newStock = { ...prev.stock };
+            delete newStock[size];
+            return { ...prev, stock: newStock };
+        });
     };
 
     const handleSubmit = async (e) => {
@@ -161,18 +212,49 @@ const UploadProducts = () => {
                                 <label className="block text-[10px] font-semibold text-white/40 uppercase tracking-[0.2em] ml-1">
                                     IMAGE SLOT {index + 1} {index === 0 && <span className="text-brand-orange ml-2 tracking-widest bg-brand-orange/10 px-2 py-0.5 rounded text-[8px]">(PRIMARY)</span>}
                                 </label>
-                                <div className="flex gap-2">
+                                <div className="space-y-3">
+                                    <div className="relative h-12 bg-black/30 border border-white/10 rounded-xl overflow-hidden hover:border-brand-orange/50 transition-all group">
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            onChange={(e) => handleFileUpload(index, e)}
+                                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                                            disabled={uploadingIndex === index}
+                                        />
+                                        <div className="px-4 py-3 text-[10px] font-bold text-white/40 flex items-center justify-center gap-3">
+                                            {uploadingIndex === index ? (
+                                                <span className="animate-pulse">UPLOADING...</span>
+                                            ) : (
+                                                <>
+                                                    <svg className="w-4 h-4 group-hover:text-brand-orange transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
+                                                    <span className="group-hover:text-white transition-colors uppercase tracking-widest">CHOOSE LOCAL FILE</span>
+                                                </>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-3">
+                                        <div className="h-px flex-1 bg-white/5"></div>
+                                        <span className="text-[8px] font-bold text-white/20 uppercase tracking-[0.3em]">OR URL</span>
+                                        <div className="h-px flex-1 bg-white/5"></div>
+                                    </div>
                                     <input
                                         type="text"
                                         placeholder="https://example.com/image.jpg"
                                         value={imgUrl}
                                         onChange={(e) => handleImageChange(index, e.target.value)}
-                                        className="w-full px-5 py-3.5 rounded-xl bg-black/20 border border-white/10 text-white font-medium focus:outline-none focus:border-brand-orange focus:ring-1 focus:ring-brand-orange transition-all text-sm placeholder:text-white/30"
+                                        className="w-full px-5 py-3.5 rounded-xl bg-black/20 border border-white/10 text-white font-medium focus:outline-none focus:border-brand-orange focus:ring-1 focus:ring-brand-orange transition-all text-sm placeholder:text-white/30 shadow-inner"
                                     />
                                 </div>
                                 {imgUrl && (
-                                    <div className="w-full h-48 rounded-xl bg-black/40 border border-white/10 overflow-hidden mt-3 shadow-inner">
+                                    <div className="w-full h-48 rounded-xl bg-black/40 border border-white/10 overflow-hidden mt-3 shadow-inner relative group/preview">
                                         <img src={imgUrl} alt="Preview" className="w-full h-full object-cover" />
+                                        <button
+                                            type="button"
+                                            onClick={() => handleImageChange(index, '')}
+                                            className="absolute top-2 right-2 w-8 h-8 rounded-full bg-black/60 text-white flex items-center justify-center opacity-0 group-hover/preview:opacity-100 transition-opacity hover:bg-red-500"
+                                        >
+                                            ×
+                                        </button>
                                     </div>
                                 )}
                             </div>
@@ -278,19 +360,52 @@ const UploadProducts = () => {
                         Stock Allocation <div className="h-px flex-1 bg-gradient-to-r from-white/20 to-transparent"></div>
                     </h2>
 
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                        {Object.entries(formData.stock).map(([size, qty]) => (
-                            <div key={size}>
-                                <label className="block text-[10px] font-semibold text-white/40 uppercase tracking-[0.2em] mb-2 ml-1">SIZE {size}</label>
+                    <div className="space-y-8">
+                        {/* Dynamic Size Inputs */}
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                            {Object.entries(formData.stock).map(([size, qty]) => (
+                                <div key={size} className="relative group/size">
+                                    <label className="block text-[10px] font-semibold text-white/40 uppercase tracking-[0.2em] mb-2 ml-1">SIZE {size}</label>
+                                    <div className="relative">
+                                        <input
+                                            type="number"
+                                            value={qty}
+                                            onChange={(e) => handleStockChange(size, e.target.value)}
+                                            min="0"
+                                            className="w-full px-5 py-4 rounded-xl bg-black/20 border border-white/10 text-white font-medium tracking-wide focus:outline-none focus:border-brand-orange focus:ring-1 focus:ring-brand-orange transition-all text-center"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => removeSize(size)}
+                                            className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-red-500 text-white text-[10px] flex items-center justify-center opacity-0 group-hover/size:opacity-100 transition-opacity"
+                                        >
+                                            ×
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Add Custom Size UI */}
+                        <div className="pt-6 border-t border-white/5 flex flex-col sm:flex-row items-end gap-4">
+                            <div className="flex-1 w-full">
+                                <label className="block text-[10px] font-semibold text-white/40 uppercase tracking-[0.2em] mb-2 ml-1">Add Custom Size Key</label>
                                 <input
-                                    type="number"
-                                    value={qty}
-                                    onChange={(e) => handleStockChange(size, e.target.value)}
-                                    min="0"
-                                    className="w-full px-5 py-4 rounded-xl bg-black/20 border border-white/10 text-white font-medium tracking-wide focus:outline-none focus:border-brand-orange focus:ring-1 focus:ring-brand-orange transition-all text-center"
+                                    type="text"
+                                    placeholder="e.g. XXL, UK 10, ONE SIZE"
+                                    value={newSize}
+                                    onChange={(e) => setNewSize(e.target.value.toUpperCase())}
+                                    className="w-full px-5 py-3 rounded-xl bg-black/20 border border-white/10 text-white font-medium focus:outline-none focus:border-brand-orange transition-all uppercase"
                                 />
                             </div>
-                        ))}
+                            <button
+                                type="button"
+                                onClick={addCustomSize}
+                                className="px-6 py-3 rounded-xl bg-white/10 text-white text-[10px] font-bold uppercase tracking-widest hover:bg-brand-orange transition-all whitespace-nowrap h-[46px]"
+                            >
+                                + ADD SIZE
+                            </button>
+                        </div>
                     </div>
                 </div>
 

@@ -101,10 +101,11 @@ const Dashboard = () => {
             // Fetch active orders count
             const activeOrders = ordersData.filter(o => o.status !== 'cancelled' && o.status !== 'delivered').length;
 
-            // Fetch inventory count
+            // Fetch inventory count (Filter out _HERO_IMAGE_)
             const { count: productCount, error: productError } = await supabase
                 .from('products')
-                .select('*', { count: 'exact', head: true });
+                .select('*', { count: 'exact', head: true })
+                .neq('name', '_HERO_IMAGE_');
 
             if (productError) throw productError;
 

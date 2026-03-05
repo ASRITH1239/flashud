@@ -34,6 +34,7 @@ class InventoryManager {
         const { data, error } = await supabase
             .from('products')
             .select('*')
+            .neq('name', '_HERO_IMAGE_')
             .order('created_at', { ascending: false });
 
         if (error) throw error;
@@ -44,7 +45,8 @@ class InventoryManager {
     async getAllInventory() {
         const { data, error } = await supabase
             .from('products')
-            .select('id, name, stock, original_price, discounted_price');
+            .select('id, name, stock, original_price, discounted_price')
+            .neq('name', '_HERO_IMAGE_');
 
         if (error) throw error;
 
@@ -155,7 +157,8 @@ class InventoryManager {
     async getInventoryStats() {
         const { data: products, error } = await supabase
             .from('products')
-            .select('stock, original_price, discounted_price');
+            .select('stock, original_price, discounted_price')
+            .neq('name', '_HERO_IMAGE_');
 
         if (error) throw error;
 
