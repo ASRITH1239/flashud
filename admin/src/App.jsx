@@ -14,6 +14,7 @@ import Register from './pages/Register';
 import AdminManagement from './pages/AdminManagement';
 import Banners from './pages/Banners';
 import Settings from './pages/Settings';
+import Coupons from './pages/Coupons';
 import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
