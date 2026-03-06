@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabaseClient';
+import { STORAGE_BUCKET } from '../lib/constants';
 
 const Banners = () => {
     const [banners, setBanners] = useState([]);
     const [newBanner, setNewBanner] = useState({ image_url: '', title: '', subtitle: '', link_url: '' });
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
+    const [isUploading, setIsUploading] = useState(false);
 
     useEffect(() => {
         fetchBanners();
@@ -19,6 +21,40 @@ const Banners = () => {
             .order('display_order', { ascending: true });
         if (data) setBanners(data);
         setIsLoading(false);
+    };
+
+    const handleFileUpload = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        setIsUploading(true);
+        try {
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${Math.random()}.${fileExt}`;
+            const filePath = `banners/${fileName}`;
+
+            const { error: uploadError } = await supabase.storage
+                .from(STORAGE_BUCKET)
+                .upload(filePath, file);
+
+            if (uploadError) {
+                if (uploadError.message.includes('Bucket not found')) {
+                    alert(`CRITICAL ERROR: Supabase bucket "${STORAGE_BUCKET}" not found. Please create it in your Supabase Dashboard.`);
+                }
+                throw uploadError;
+            }
+
+            const { data: { publicUrl } } = supabase.storage
+                .from(STORAGE_BUCKET)
+                .getPublicUrl(filePath);
+
+            setNewBanner(prev => ({ ...prev, image_url: publicUrl }));
+        } catch (error) {
+            console.error('Upload error:', error);
+            alert('Error uploading banner: ' + error.message);
+        } finally {
+            setIsUploading(false);
+        }
     };
 
     const handleAddBanner = async (e) => {
@@ -60,45 +96,97 @@ const Banners = () => {
                     Deploy New Asset <div className="h-px flex-1 bg-gradient-to-r from-white/20 to-transparent"></div>
                 </h3>
                 <form onSubmit={handleAddBanner} className="space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <input
-                            type="text"
-                            placeholder="IMAGE URL (E.G. HTTPS://...)"
-                            value={newBanner.image_url}
-                            onChange={(e) => setNewBanner({ ...newBanner, image_url: e.target.value })}
-                            className="px-5 py-4 rounded-xl bg-black/20 border border-white/10 text-white font-medium focus:border-brand-orange focus:outline-none transition-all placeholder:text-white/30"
-                            required
-                        />
-                        <input
-                            type="text"
-                            placeholder="TARGET URL (DESTINATION)"
-                            value={newBanner.link_url}
-                            onChange={(e) => setNewBanner({ ...newBanner, link_url: e.target.value })}
-                            className="px-5 py-4 rounded-xl bg-black/20 border border-white/10 text-white font-medium focus:border-brand-orange focus:outline-none transition-all placeholder:text-white/30"
-                        />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div className="space-y-4">
+                            <label className="text-[10px] font-bold text-white/40 uppercase tracking-[0.2em] ml-1">Banner Asset</label>
+
+                            <div className="relative h-14 bg-black/30 border border-white/10 rounded-xl overflow-hidden hover:border-brand-orange/50 transition-all group">
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={handleFileUpload}
+                                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                                    disabled={isUploading}
+                                />
+                                <div className="px-5 py-4 text-[10px] font-bold text-white/40 flex items-center justify-center gap-3">
+                                    {isUploading ? (
+                                        <span className="animate-pulse tracking-widest uppercase">Uploading Asset...</span>
+                                    ) : (
+                                        <>
+                                            <svg className="w-5 h-5 group-hover:text-brand-orange transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
+                                            <span className="group-hover:text-white transition-colors tracking-widest uppercase">Choose Local Image</span>
+                                        </>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="flex items-center gap-3">
+                                <div className="h-px flex-1 bg-white/5"></div>
+                                <span className="text-[8px] font-bold text-white/20 uppercase tracking-[0.3em]">OR URL</span>
+                                <div className="h-px flex-1 bg-white/5"></div>
+                            </div>
+
+                            <input
+                                type="text"
+                                placeholder="IMAGE URL (E.G. HTTPS://...)"
+                                value={newBanner.image_url}
+                                onChange={(e) => setNewBanner({ ...newBanner, image_url: e.target.value })}
+                                className="w-full px-5 py-4 rounded-xl bg-black/20 border border-white/10 text-white font-medium focus:border-brand-orange focus:outline-none transition-all placeholder:text-white/30"
+                                required
+                            />
+                        </div>
+
+                        <div className="space-y-6">
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-bold text-white/40 uppercase tracking-[0.2em] ml-1">Destination URL</label>
+                                <input
+                                    type="text"
+                                    placeholder="TARGET URL (DESTINATION)"
+                                    value={newBanner.link_url}
+                                    onChange={(e) => setNewBanner({ ...newBanner, link_url: e.target.value })}
+                                    className="w-full px-5 py-4 rounded-xl bg-black/20 border border-white/10 text-white font-medium focus:border-brand-orange focus:outline-none transition-all placeholder:text-white/30"
+                                />
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-bold text-white/40 uppercase tracking-[0.2em] ml-1">Main Heading</label>
+                                    <input
+                                        type="text"
+                                        placeholder="TITLE"
+                                        value={newBanner.title}
+                                        onChange={(e) => setNewBanner({ ...newBanner, title: e.target.value })}
+                                        className="w-full px-5 py-4 rounded-xl bg-black/20 border border-white/10 text-white font-medium focus:border-brand-orange focus:outline-none transition-all placeholder:text-white/30"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-bold text-white/40 uppercase tracking-[0.2em] ml-1">Subtitle</label>
+                                    <input
+                                        type="text"
+                                        placeholder="SUBTITLE"
+                                        value={newBanner.subtitle}
+                                        onChange={(e) => setNewBanner({ ...newBanner, subtitle: e.target.value })}
+                                        className="w-full px-5 py-4 rounded-xl bg-black/20 border border-white/10 text-white font-medium focus:border-brand-orange focus:outline-none transition-all placeholder:text-white/30"
+                                    />
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <input
-                            type="text"
-                            placeholder="PRIMARY TITLE (OPTIONAL)"
-                            value={newBanner.title}
-                            onChange={(e) => setNewBanner({ ...newBanner, title: e.target.value })}
-                            className="px-5 py-4 rounded-xl bg-black/20 border border-white/10 text-white font-medium focus:border-brand-orange focus:outline-none transition-all placeholder:text-white/30"
-                        />
-                        <input
-                            type="text"
-                            placeholder="SUBTITLE / CALL TO ACTION"
-                            value={newBanner.subtitle}
-                            onChange={(e) => setNewBanner({ ...newBanner, subtitle: e.target.value })}
-                            className="px-5 py-4 rounded-xl bg-black/20 border border-white/10 text-white font-medium focus:border-brand-orange focus:outline-none transition-all placeholder:text-white/30"
-                        />
-                    </div>
+
+                    {newBanner.image_url && (
+                        <div className="relative aspect-[21/9] rounded-2xl overflow-hidden border border-white/10 bg-black/40">
+                            <img src={newBanner.image_url} alt="Preview" className="w-full h-full object-cover" />
+                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                                <span className="text-white text-[10px] font-bold uppercase tracking-widest">Live Preview</span>
+                            </div>
+                        </div>
+                    )}
+
                     <button
                         type="submit"
-                        disabled={isSaving}
-                        className="w-full py-4 rounded-xl bg-brand-gradient text-white font-bold uppercase tracking-[0.2em] shadow-lg hover:-translate-y-0.5 transition-all"
+                        disabled={isSaving || isUploading}
+                        className="w-full py-4 rounded-xl bg-brand-gradient text-white font-bold uppercase tracking-[0.2em] shadow-lg hover:-translate-y-0.5 transition-all disabled:opacity-50"
                     >
-                        {isSaving ? 'UPLOADING...' : 'SAVE TO CAROUSEL'}
+                        {isSaving ? 'DEPLOYING...' : 'SAVE TO CAROUSEL'}
                     </button>
                 </form>
             </div>
@@ -106,7 +194,7 @@ const Banners = () => {
             {/* Banner List */}
             <div className="grid grid-cols-1 gap-8">
                 {isLoading ? (
-                    <div className="p-20 text-center text-white/50 animate-pulse">Scanning Vault...</div>
+                    <div className="p-20 text-center text-white/50 animate-pulse uppercase tracking-widest">Scanning Vault...</div>
                 ) : banners.length > 0 ? banners.map((banner) => (
                     <div key={banner.id} className="relative aspect-[21/9] rounded-3xl overflow-hidden group border border-white/10 shadow-2xl">
                         <img src={banner.image_url} alt={banner.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
@@ -124,7 +212,7 @@ const Banners = () => {
                         </div>
                     </div>
                 )) : (
-                    <div className="p-20 text-center bg-white/5 rounded-3xl border border-white/10 text-white/30 uppercase tracking-[0.2em]">No Active Banners</div>
+                    <div className="p-20 text-center bg-white/5 rounded-3xl border border-white/10 text-white/30 uppercase tracking-[0.2em]">No Active Banners Found</div>
                 )}
             </div>
         </div>
@@ -132,3 +220,4 @@ const Banners = () => {
 };
 
 export default Banners;
+

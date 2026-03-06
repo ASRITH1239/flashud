@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabaseClient';
+import { STORAGE_BUCKET } from '../lib/constants';
+
 
 const Dashboard = () => {
     const [stats, setStats] = useState({
@@ -10,7 +11,9 @@ const Dashboard = () => {
     const [recentOrders, setRecentOrders] = useState([]);
     const [heroImage, setHeroImage] = useState('');
     const [isSavingHero, setIsSavingHero] = useState(false);
+    const [isUploadingHero, setIsUploadingHero] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
+
 
     useEffect(() => {
         fetchDashboardData();
@@ -67,22 +70,40 @@ const Dashboard = () => {
         }
     };
 
-    const handleFileSelect = (e) => {
+    const handleHeroUpload = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
 
-        // Basic check for file size (keep under 2MB for DB storage safety)
-        if (file.size > 2 * 1024 * 1024) {
-            alert('Please select an image smaller than 2MB.');
-            return;
-        }
+        setIsUploadingHero(true);
+        try {
+            const fileExt = file.name.split('.').pop();
+            const fileName = `hero_${Math.random()}.${fileExt}`;
+            const filePath = `settings/${fileName}`;
 
-        const reader = new FileReader();
-        reader.onloadend = () => {
-            setHeroImage(reader.result);
-        };
-        reader.readAsDataURL(file);
+            const { error: uploadError } = await supabase.storage
+                .from(STORAGE_BUCKET)
+                .upload(filePath, file);
+
+            if (uploadError) {
+                if (uploadError.message.includes('Bucket not found')) {
+                    alert(`CRITICAL ERROR: Supabase bucket "${STORAGE_BUCKET}" not found. Please create it in your Supabase Dashboard.`);
+                }
+                throw uploadError;
+            }
+
+            const { data: { publicUrl } } = supabase.storage
+                .from(STORAGE_BUCKET)
+                .getPublicUrl(filePath);
+
+            setHeroImage(publicUrl);
+        } catch (error) {
+            console.error('Hero upload error:', error);
+            alert('Error uploading hero: ' + error.message);
+        } finally {
+            setIsUploadingHero(false);
+        }
     };
+
 
     const fetchDashboardData = async () => {
         setIsLoading(true);
@@ -175,12 +196,13 @@ const Dashboard = () => {
                                     <input
                                         type="file"
                                         accept="image/*"
-                                        onChange={handleFileSelect}
+                                        onChange={handleHeroUpload}
                                         className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                                        disabled={isUploadingHero}
                                     />
                                     <div className="px-5 py-4 text-sm font-medium text-white/40 flex items-center justify-center gap-3">
                                         <svg className="w-5 h-5 group-hover:text-brand-orange transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" /></svg>
-                                        <span className="group-hover:text-white transition-colors">CHOOSE FILE</span>
+                                        <span className="group-hover:text-white transition-colors">{isUploadingHero ? 'UPLOADING...' : 'CHOOSE ASSET'}</span>
                                     </div>
                                 </div>
 
@@ -201,7 +223,7 @@ const Dashboard = () => {
                             disabled={isSavingHero}
                             className="px-8 py-4 rounded-xl bg-brand-orange text-white font-bold uppercase tracking-[0.2em] text-[10px] hover:bg-brand-orange/80 transition-all disabled:opacity-50 h-[54px] whitespace-nowrap"
                         >
-                            {isSavingHero ? 'SAVING...' : 'UPDATE HERO'}
+                            {isUploadingHero ? 'UPLOADING...' : isSavingHero ? 'SAVING...' : 'UPDATE HERO'}
                         </button>
                     </div>
                 </form>

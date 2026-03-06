@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabaseClient';
+import { STORAGE_BUCKET } from '../lib/constants';
 
 const Categories = () => {
     const [categories, setCategories] = useState([]);
@@ -51,14 +51,21 @@ const Categories = () => {
             const filePath = `categories/${fileName}`;
 
             const { error: uploadError } = await supabase.storage
-                .from('product-images')
+                .from(STORAGE_BUCKET)
                 .upload(filePath, file);
 
-            if (uploadError) throw uploadError;
+            if (uploadError) {
+                if (uploadError.message.includes('Bucket not found')) {
+                    alert(`CRITICAL ERROR: Supabase bucket "${STORAGE_BUCKET}" not found. Please create it in your Supabase Dashboard under Storage -> New Bucket.`);
+                }
+                console.error('SUPABASE STORAGE ERROR:', uploadError);
+                throw uploadError;
+            }
 
             const { data: { publicUrl } } = supabase.storage
-                .from('product-images')
+                .from(STORAGE_BUCKET)
                 .getPublicUrl(filePath);
+
 
             setNewCategory(prev => ({ ...prev, thumbnail_url: publicUrl }));
         } catch (error) {

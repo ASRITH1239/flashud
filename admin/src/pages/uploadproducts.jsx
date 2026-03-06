@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
+import { STORAGE_BUCKET } from '../lib/constants';
+
 
 const UploadProducts = () => {
     const navigate = useNavigate();
@@ -101,14 +101,21 @@ const UploadProducts = () => {
             const filePath = `${fileName}`;
 
             const { error: uploadError } = await supabase.storage
-                .from('product-images')
+                .from(STORAGE_BUCKET)
                 .upload(filePath, file);
 
-            if (uploadError) throw uploadError;
+            if (uploadError) {
+                if (uploadError.message.includes('Bucket not found')) {
+                    alert(`CRITICAL ERROR: Supabase bucket "${STORAGE_BUCKET}" not found. Please create it in your Supabase Dashboard under Storage -> New Bucket.`);
+                }
+                console.error('SUPABASE STORAGE ERROR:', uploadError);
+                throw uploadError;
+            }
 
             const { data: { publicUrl } } = supabase.storage
-                .from('product-images')
+                .from(STORAGE_BUCKET)
                 .getPublicUrl(filePath);
+
 
             handleImageChange(index, publicUrl);
         } catch (error) {
