@@ -71,10 +71,20 @@ const Categories = () => {
             setNewCategory(prev => ({ ...prev, thumbnail_url: publicUrl }));
         } catch (error) {
             console.error('Upload error:', error);
-            alert('Error uploading thumbnail: ' + error.message);
+
+            // Debugging Auth state for RLS issues
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) {
+                console.error('AUTH ERROR: No active Supabase session found. The RLS policy will reject this upload.');
+                alert('Session Expired: Please log out and log in again to refresh your security credentials.');
+            } else {
+                console.log('AUTH CHECK: User is authenticated as', session.user.email);
+                alert('Error uploading thumbnail: ' + error.message + '\n\nPlease check your Supabase Storage RLS policies for the "product-images" bucket.');
+            }
         } finally {
             setIsUploading(false);
         }
+
     };
 
     const deleteCategory = async (id) => {
