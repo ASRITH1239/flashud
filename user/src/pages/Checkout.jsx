@@ -103,7 +103,7 @@ const Checkout = () => {
     }
 
     return (
-        <div className="max-w-7xl mx-auto py-20 px-6 selection:bg-brand-orange selection:text-white">
+        <div className="max-w-7xl mx-auto pt-32 pb-24 px-6 selection:bg-brand-orange selection:text-white">
             <div className="mb-16 border-b border-black/5 pb-8">
                 <h1 className="text-5xl md:text-7xl font-light uppercase tracking-[0.2em] leading-none text-brand-dark">
                     SECURE <span className="font-bold text-brand-orange">CHECKOUT</span>

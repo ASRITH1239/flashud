@@ -67,7 +67,7 @@ const ProductDetail = () => {
     );
 
     return (
-        <div className="max-w-7xl mx-auto py-20 px-6 selection:bg-brand-orange selection:text-white mt-10">
+        <div className="max-w-7xl mx-auto pt-32 pb-24 px-6 selection:bg-brand-orange selection:text-white">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-24">
                 {/* Image Gallery */}
                 <div className="space-y-6">

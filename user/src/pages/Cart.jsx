@@ -67,7 +67,7 @@ const Cart = () => {
     const total = subtotal - calculateDiscount();
 
     return (
-        <div className="max-w-5xl mx-auto py-20 px-6 selection:bg-brand-orange selection:text-white mt-10">
+        <div className="max-w-5xl mx-auto pt-32 pb-24 px-6 selection:bg-brand-orange selection:text-white">
             <div className="mb-16 border-b border-black/5 pb-8">
                 <h2 className="text-5xl md:text-7xl font-light uppercase tracking-[0.1em] leading-none text-brand-dark">
                     YOUR <span className="font-bold text-brand-orange">SELECTION</span>

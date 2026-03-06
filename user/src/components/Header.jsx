@@ -85,9 +85,6 @@ const Header = () => {
                 {/* Right Side: Icons */}
                 <div className="flex justify-end items-center gap-4 md:gap-6 w-1/3">
                     <div className="hidden md:flex items-center gap-6">
-                        <button className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors shrink-0 ${isTransparent ? 'bg-white/10 text-white hover:bg-white/20' : 'bg-brand-dark text-white hover:bg-brand-orange'}`}>
-                            <GlobeIcon />
-                        </button>
                         <button className="hover:text-brand-orange transition-colors shrink-0"><PinIcon /></button>
                         <button className="hover:text-brand-orange transition-colors shrink-0"><SearchIcon /></button>
                         <Link to="/account" className="hover:text-brand-orange transition-colors shrink-0"><UserIcon /></Link>
@@ -135,9 +132,6 @@ const Header = () => {
                     <div className="p-6 bg-black text-white">
                         <div className="flex items-center justify-between">
                             <span className="text-[10px] font-bold tracking-[0.3em] uppercase opacity-60">Identity // Premium</span>
-                            <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">
-                                <GlobeIcon />
-                            </div>
                         </div>
                     </div>
                 </div>

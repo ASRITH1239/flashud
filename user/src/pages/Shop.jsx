@@ -41,13 +41,16 @@ const Shop = () => {
         else query = query.order('created_at', { ascending: false });
 
         const { data: prodData } = await query;
-        if (prodData) setProducts(prodData);
+        if (prodData) {
+            // Filter out internal setting products like _HERO_IMAGE_
+            setProducts(prodData.filter(p => p.name !== '_HERO_IMAGE_'));
+        }
 
         setIsLoading(false);
     };
 
     return (
-        <div className="max-w-7xl mx-auto selection:bg-brand-orange selection:text-white pb-20 px-6 mt-10">
+        <div className="max-w-7xl mx-auto selection:bg-brand-orange selection:text-white pb-20 px-6 pt-32">
             {/* Shop Header */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-16 gap-8 border-b border-black/5 pb-8">
                 <div>

@@ -54,7 +54,7 @@ const Account = () => {
     if (!user) return null; // Will redirect
 
     return (
-        <div className="max-w-7xl mx-auto py-20 px-6 selection:bg-brand-orange selection:text-white mt-10">
+        <div className="max-w-7xl mx-auto pt-32 pb-24 px-6 selection:bg-brand-orange selection:text-white">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-16 gap-8 border-b border-black/5 pb-12">
                 <div>
                     <h1 className="text-5xl md:text-7xl font-light uppercase tracking-[0.2em] leading-none text-brand-dark">
