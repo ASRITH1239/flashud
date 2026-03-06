@@ -110,7 +110,7 @@ const Checkout = () => {
                 </h1>
                 <div className="flex items-center gap-4 mt-6">
                     <span className="w-10 h-px bg-brand-orange"></span>
-                    <span className="text-[10px] font-semibold text-brand-dark/50 uppercase tracking-[0.3em]">COMMERCIAL TRANSACTION GATEWAY</span>
+                    <span className="text-[10px] font-semibold text-brand-dark/50 uppercase tracking-[0.3em]">SAFE & SECURE CHECKOUT</span>
                 </div>
             </div>
 
@@ -118,49 +118,49 @@ const Checkout = () => {
                 {/* Shipping Details */}
                 <div>
                     <h2 className="text-xl font-light uppercase tracking-[0.2em] mb-8 text-brand-dark flex items-center gap-4">
-                        LOGISTICS <span className="font-bold">DETAIL</span>
+                        SHIPPING <span className="font-bold">INFO</span>
                         <span className="h-px flex-1 bg-gradient-to-r from-brand-orange/50 to-transparent"></span>
                     </h2>
 
                     <form onSubmit={handlePlaceOrder} className="space-y-6">
                         <div className="grid grid-cols-2 gap-6">
                             <div className="space-y-2">
-                                <label className="text-[9px] font-bold uppercase tracking-[0.2em] text-brand-dark/50">GIVEN NAME</label>
+                                <label className="text-[9px] font-bold uppercase tracking-[0.2em] text-brand-dark/50">First Name</label>
                                 <input name="firstName" required value={formData.firstName} onChange={handleInputChange} type="text" placeholder="FIRST" className="w-full bg-white border border-black/10 rounded-xl p-4 text-sm font-medium text-brand-dark placeholder-brand-dark/30 shadow-sm uppercase focus:outline-none focus:border-brand-orange/50 transition-all" />
                             </div>
                             <div className="space-y-2">
-                                <label className="text-[9px] font-bold uppercase tracking-[0.2em] text-brand-dark/50">SURNAME</label>
+                                <label className="text-[9px] font-bold uppercase tracking-[0.2em] text-brand-dark/50">Last Name</label>
                                 <input name="lastName" required value={formData.lastName} onChange={handleInputChange} type="text" placeholder="LAST" className="w-full bg-white border border-black/10 rounded-xl p-4 text-sm font-medium text-brand-dark placeholder-brand-dark/30 shadow-sm uppercase focus:outline-none focus:border-brand-orange/50 transition-all" />
                             </div>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="space-y-2">
-                                <label className="text-[9px] font-bold uppercase tracking-[0.2em] text-brand-dark/50">IDENTITY (EMAIL)</label>
+                                <label className="text-[9px] font-bold uppercase tracking-[0.2em] text-brand-dark/50">Email Address</label>
                                 <input name="email" required value={formData.email} onChange={handleInputChange} type="email" placeholder="UNIT@EXAMPLE.COM" className="w-full bg-white border border-black/10 rounded-xl p-4 text-sm font-medium text-brand-dark placeholder-brand-dark/30 shadow-sm uppercase focus:outline-none focus:border-brand-orange/50 transition-all" />
                             </div>
                             <div className="space-y-2">
-                                <label className="text-[9px] font-bold uppercase tracking-[0.2em] text-brand-dark/50">COMM SEC (PHONE)</label>
+                                <label className="text-[9px] font-bold uppercase tracking-[0.2em] text-brand-dark/50">Phone Number</label>
                                 <input name="phone" required value={formData.phone} onChange={handleInputChange} type="tel" placeholder="+1 (555) 000-0000" className="w-full bg-white border border-black/10 rounded-xl p-4 text-sm font-medium text-brand-dark placeholder-brand-dark/30 shadow-sm uppercase focus:outline-none focus:border-brand-orange/50 transition-all" />
                             </div>
                         </div>
 
                         <div className="space-y-2">
-                            <label className="text-[9px] font-bold uppercase tracking-[0.2em] text-brand-dark/50">PHYSICAL COORDINATES (ADDRESS)</label>
+                            <label className="text-[9px] font-bold uppercase tracking-[0.2em] text-brand-dark/50">Shipping Address</label>
                             <input name="address" required value={formData.address} onChange={handleInputChange} type="text" placeholder="STREET ADDRESS" className="w-full bg-white border border-black/10 rounded-xl p-4 text-sm font-medium text-brand-dark placeholder-brand-dark/30 shadow-sm uppercase focus:outline-none focus:border-brand-orange/50 transition-all" />
                         </div>
 
                         <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
                             <div className="space-y-2">
-                                <label className="text-[9px] font-bold uppercase tracking-[0.2em] text-brand-dark/50">SECTOR (CITY)</label>
+                                <label className="text-[9px] font-bold uppercase tracking-[0.2em] text-brand-dark/50">City</label>
                                 <input name="city" required value={formData.city} onChange={handleInputChange} type="text" placeholder="CITY" className="w-full bg-white border border-black/10 rounded-xl p-4 text-sm font-medium text-brand-dark placeholder-brand-dark/30 shadow-sm uppercase focus:outline-none focus:border-brand-orange/50 transition-all" />
                             </div>
                             <div className="space-y-2">
-                                <label className="text-[9px] font-bold uppercase tracking-[0.2em] text-brand-dark/50">REGION (COUNTRY)</label>
+                                <label className="text-[9px] font-bold uppercase tracking-[0.2em] text-brand-dark/50">Country</label>
                                 <input name="country" required value={formData.country} onChange={handleInputChange} type="text" placeholder="COUNTRY" className="w-full bg-white border border-black/10 rounded-xl p-4 text-sm font-medium text-brand-dark placeholder-brand-dark/30 shadow-sm uppercase focus:outline-none focus:border-brand-orange/50 transition-all" />
                             </div>
                             <div className="space-y-2 col-span-2 md:col-span-1">
-                                <label className="text-[9px] font-bold uppercase tracking-[0.2em] text-brand-dark/50">ZONE (ZIP)</label>
+                                <label className="text-[9px] font-bold uppercase tracking-[0.2em] text-brand-dark/50">Zip Code</label>
                                 <input name="zip" required value={formData.zip} onChange={handleInputChange} type="text" placeholder="ZIP" className="w-full bg-white border border-black/10 rounded-xl p-4 text-sm font-medium text-brand-dark placeholder-brand-dark/30 shadow-sm uppercase focus:outline-none focus:border-brand-orange/50 transition-all" />
                             </div>
                         </div>
@@ -177,11 +177,11 @@ const Checkout = () => {
                                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                         </svg>
-                                        AUTHORIZING TRANSACTION...
+                                        PROCESSING...
                                     </>
                                 ) : (
                                     <>
-                                        <span>AUTHORIZE PAYMENT (COD)</span>
+                                        <span>PLACE ORDER (COD)</span>
                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
                                     </>
                                 )}
@@ -193,7 +193,7 @@ const Checkout = () => {
                 {/* Summary Panel */}
                 <div>
                     <div className="bg-white border border-black/5 p-8 md:p-10 rounded-3xl shadow-xl sticky top-28">
-                        <h2 className="text-xl font-light uppercase tracking-[0.2em] mb-8 text-brand-dark border-b border-black/5 pb-4">ORDER <span className="font-bold">RECAP</span></h2>
+                        <h2 className="text-xl font-light uppercase tracking-[0.2em] mb-8 text-brand-dark border-b border-black/5 pb-4">ORDER <span className="font-bold">SUMMARY</span></h2>
 
                         <div className="space-y-6 mb-8 max-h-[40vh] overflow-y-auto pr-2 custom-scrollbar">
                             {cartItems.map((item, idx) => (
@@ -218,15 +218,15 @@ const Checkout = () => {
 
                         <div className="space-y-4 pt-6">
                             <div className="flex justify-between text-[10px] font-bold">
-                                <span className="opacity-40 tracking-[0.2em] uppercase text-brand-dark/50">LOGISTICS (SHIPPING)</span>
-                                <span className="text-green-500 tracking-wider">COMPLIMENTARY</span>
+                                <span className="opacity-40 tracking-[0.2em] uppercase text-brand-dark/50">SHIPPING</span>
+                                <span className="text-green-500 tracking-wider">FREE</span>
                             </div>
                             <div className="flex justify-between text-[10px] font-bold border-b border-black/5 pb-6">
-                                <span className="opacity-40 tracking-[0.2em] uppercase text-brand-dark/50">VAT / DUTIES</span>
+                                <span className="opacity-40 tracking-[0.2em] uppercase text-brand-dark/50">TAXES</span>
                                 <span className="text-brand-dark">${tax.toFixed(2)}</span>
                             </div>
                             <div className="flex justify-between items-end pt-2">
-                                <span className="text-sm font-bold tracking-[0.1em] uppercase text-brand-dark/70">TOTAL DEBIT</span>
+                                <span className="text-sm font-bold tracking-[0.1em] uppercase text-brand-dark/70">TOTAL AMOUNT</span>
                                 <span className="text-3xl font-bold tracking-wider text-brand-orange">${total.toFixed(2)}</span>
                             </div>
                         </div>

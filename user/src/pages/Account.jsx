@@ -46,7 +46,7 @@ const Account = () => {
         return (
             <div className="min-h-[80vh] flex flex-col items-center justify-center">
                 <div className="w-16 h-16 border-4 border-brand-orange/20 border-t-brand-orange rounded-full animate-spin"></div>
-                <p className="mt-6 text-[10px] font-bold tracking-[0.3em] uppercase text-brand-dark/50">Securing Session...</p>
+                <p className="mt-6 text-[10px] font-bold tracking-[0.3em] uppercase text-brand-dark/50">Loading profile...</p>
             </div>
         );
     }
@@ -67,7 +67,7 @@ const Account = () => {
                     className="px-8 py-4 rounded-full bg-white border border-black/10 text-brand-dark font-bold uppercase tracking-[0.2em] text-[10px] hover:bg-red-50 hover:text-red-500 hover:border-red-200 transition-all flex items-center gap-2 shadow-sm"
                 >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
-                    TERMINATE SESSION
+                    Sign Out
                 </button>
             </div>
 
@@ -110,7 +110,7 @@ const Account = () => {
 
                             <div className="pt-4">
                                 <button className="w-full py-4 rounded-xl bg-white border border-black/10 text-brand-dark font-bold uppercase tracking-[0.2em] text-[10px] hover:bg-gray-50 hover:text-brand-orange transition-all shadow-sm">
-                                    EDIT SPECIFICATIONS
+                                    Edit Profile
                                 </button>
                             </div>
                         </div>

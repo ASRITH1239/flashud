@@ -72,16 +72,16 @@ const Login = () => {
     };
 
     return (
-        <div className="min-h-[80vh] flex flex-col items-center justify-center p-6 selection:bg-brand-orange selection:text-white relative overflow-hidden">
+        <div className="min-h-[80vh] flex flex-col items-center justify-center p-6 selection:bg-brand-orange selection:text-white relative overflow-hidden pt-32">
             {/* Ambient background glows removed */}
 
             <div className="w-full max-w-md relative z-10">
                 <div className="text-center mb-10">
                     <h1 className="text-4xl md:text-5xl font-light uppercase tracking-[0.2em] text-brand-dark">
-                        {isLogin ? 'IDENTITY' : 'BECOME A'} <span className="font-bold text-brand-orange">{isLogin ? 'GATEWAY' : 'MEMBER'}</span>
+                        {isLogin ? 'Welcome' : 'Join'} <span className="font-bold text-brand-orange">{isLogin ? 'Back' : 'Flashud'}</span>
                     </h1>
                     <p className="text-[10px] font-bold text-brand-dark/50 uppercase tracking-[0.3em] mt-4">
-                        CRYPTOGRAPHICALLY SECURE SESSION
+                        Secure Customer Login
                     </p>
                 </div>
 
@@ -103,13 +103,13 @@ const Login = () => {
                                     value={fullName}
                                     onChange={(e) => setFullName(e.target.value)}
                                     required
-                                    placeholder="LEGAL ENTITY NAME"
+                                    placeholder="Enter your name"
                                     className="w-full bg-white border border-black/10 rounded-xl p-4 text-sm text-brand-dark font-medium focus:outline-none focus:border-brand-orange/50 transition-all placeholder-brand-dark/30 uppercase shadow-sm"
                                 />
                             </div>
                         )}
                         <div className="space-y-2">
-                            <label className="text-[9px] font-bold text-brand-dark/50 uppercase tracking-[0.2em]">Electronic Mail</label>
+                            <label className="text-[9px] font-bold text-brand-dark/50 uppercase tracking-[0.2em]">Email Address</label>
                             <input
                                 type="email"
                                 value={email}
@@ -121,8 +121,8 @@ const Login = () => {
                         </div>
                         <div className="space-y-2">
                             <div className="flex justify-between items-center">
-                                <label className="text-[9px] font-bold text-brand-dark/50 uppercase tracking-[0.2em]">Cryptographic Key</label>
-                                {isLogin && <a href="#" className="text-[9px] font-bold text-brand-orange hover:text-brand-dark transition-colors uppercase tracking-[0.1em]">LOST KEY?</a>}
+                                <label className="text-[9px] font-bold text-brand-dark/50 uppercase tracking-[0.2em]">Password</label>
+                                {isLogin && <a href="#" className="text-[9px] font-bold text-brand-orange hover:text-brand-dark transition-colors uppercase tracking-[0.1em]">Forgot?</a>}
                             </div>
                             <input
                                 type="password"
@@ -149,7 +149,7 @@ const Login = () => {
                                         AUTHENTICATING...
                                     </>
                                 ) : (
-                                    isLogin ? 'AUTHORIZE ACCESS' : 'CREATE IDENTITY'
+                                    isLogin ? 'Sign In' : 'Sign Up'
                                 )}
                             </button>
                         </div>
@@ -177,7 +177,7 @@ const Login = () => {
                             }}
                             className="text-[10px] font-bold text-brand-dark/50 hover:text-brand-dark uppercase tracking-[0.1em] transition-colors"
                         >
-                            {isLogin ? 'ESTABLISH NEW IDENTITY' : 'RETURN TO GATEWAY'}
+                            {isLogin ? 'Create Account' : 'Back to Login'}
                         </button>
                     </div>
                 </div>

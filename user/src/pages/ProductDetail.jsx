@@ -56,7 +56,7 @@ const ProductDetail = () => {
     if (isLoading) return (
         <div className="min-h-[80vh] flex flex-col items-center justify-center">
             <div className="w-12 h-12 border-2 border-brand-orange/20 border-t-brand-orange rounded-full animate-spin mb-6"></div>
-            <p className="font-medium text-[10px] text-brand-dark/50 uppercase tracking-[0.3em]">Accessing Asset File...</p>
+            <p className="font-medium text-[10px] text-brand-dark/50 uppercase tracking-[0.3em]">Loading details...</p>
         </div>
     );
     if (!product) return (

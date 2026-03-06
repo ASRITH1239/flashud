@@ -100,7 +100,7 @@ const Shop = () => {
             {isLoading ? (
                 <div className="py-32 flex flex-col items-center justify-center">
                     <div className="w-12 h-12 border-2 border-brand-orange/20 border-t-brand-orange rounded-full animate-spin mb-6"></div>
-                    <p className="font-medium text-[10px] text-brand-dark/50 uppercase tracking-[0.3em]">Decrypting Inventory Database...</p>
+                    <p className="font-medium text-[10px] text-brand-dark/50 uppercase tracking-[0.3em]">Loading Collection...</p>
                 </div>
             ) : products.length === 0 ? (
                 <div className="py-32 text-center border border-black/5 rounded-3xl bg-white shadow-sm">

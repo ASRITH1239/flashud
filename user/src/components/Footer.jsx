@@ -5,7 +5,7 @@ const Footer = () => {
     return (
         <footer className="w-full bg-white border-t border-black/5 pt-20 pb-10 mt-32 relative overflow-hidden">
             <div className="max-w-7xl mx-auto px-6 relative z-10">
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-12 mb-16">
                     {/* Brand Column */}
                     <div className="col-span-1 md:col-span-1 space-y-6">
                         <Link to="/" className="flex items-center gap-4 group">
