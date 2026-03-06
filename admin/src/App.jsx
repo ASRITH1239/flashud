@@ -44,7 +44,10 @@ function App() {
         return () => subscription.unsubscribe();
     }, []);
 
-    if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
+    const isValid = (val) => val && val !== 'undefined' && val !== 'null' && val.length > 10;
+    const isConfigMissing = !isValid(import.meta.env.VITE_SUPABASE_URL) || !isValid(import.meta.env.VITE_SUPABASE_ANON_KEY);
+
+    if (isConfigMissing) {
         return (
             <div className="min-h-screen bg-black flex flex-col items-center justify-center p-10 text-center">
                 <div className="w-20 h-20 rounded-full border-2 border-brand-orange flex items-center justify-center text-4xl mb-8 animate-pulse">⚠️</div>
